@@ -1,0 +1,4 @@
+.git
+simulation/results
+controller-server/build-*
+tests/controller-server/build-*

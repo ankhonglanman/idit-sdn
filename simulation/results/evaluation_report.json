@@ -1,0 +1,365 @@
+{
+  "firmware_sizes": {
+    "ids_on": {
+      "attack-fdff.z1": {
+        "text": 43105,
+        "data": 258,
+        "bss": 6726,
+        "rom": 43363,
+        "ram": 6984
+      },
+      "controller-node.z1": {
+        "text": 33311,
+        "data": 224,
+        "bss": 6592,
+        "rom": 33535,
+        "ram": 6816
+      },
+      "enabled-node.z1": {
+        "text": 47889,
+        "data": 272,
+        "bss": 6716,
+        "rom": 48161,
+        "ram": 6988
+      },
+      "sink-node.z1": {
+        "text": 42547,
+        "data": 258,
+        "bss": 6670,
+        "rom": 42805,
+        "ram": 6928
+      }
+    },
+    "ids_off": {
+      "controller-node.z1": {
+        "text": 32941,
+        "data": 224,
+        "bss": 6336,
+        "rom": 33165,
+        "ram": 6560
+      },
+      "enabled-node.z1": {
+        "text": 41509,
+        "data": 258,
+        "bss": 6384,
+        "rom": 41767,
+        "ram": 6642
+      },
+      "sink-node.z1": {
+        "text": 41147,
+        "data": 258,
+        "bss": 6344,
+        "rom": 41405,
+        "ram": 6602
+      }
+    },
+    "controller_pc": {
+      "build-controller-pc-attack-demo": 159416,
+      "build-controller-pc-ids-off": 145512
+    }
+  },
+  "scenarios": {
+    "benign_ids_off": {
+      "motes": {
+        "attack_start_s": null,
+        "attack_false_flow_sends": 0,
+        "data_traffic": {
+          "tx": 77,
+          "rx": 69,
+          "pdr_pct": 89.61,
+          "delay_mean_ms": 9397.42,
+          "delay_median_ms": 2639.3,
+          "delay_p95_ms": 12153.5,
+          "delay_max_ms": 120538.36
+        },
+        "data_traffic_split": {},
+        "control_overhead": {
+          "originated_sdn": 206,
+          "originated_ids_mngt": 0,
+          "originated_total": 206,
+          "radio_tx_sdn": 206,
+          "radio_tx_ids_mngt": 0,
+          "radio_tx_total": 206
+        },
+        "energy_mj": {
+          "per_node": {
+            "8": 969,
+            "2": 1714,
+            "6": 1101,
+            "4": 1107,
+            "7": 1009,
+            "9": 913,
+            "5": 1058,
+            "3": 854
+          },
+          "sensor_nodes_total_mj": 8725,
+          "sensor_nodes_mean_mj": 1090.62
+        },
+        "distributed_ids": {
+          "suspects_by_node": {},
+          "cp_detected_nodes": {},
+          "alarm_nodes": []
+        }
+      },
+      "controller": {
+        "controller_reported_total_overhead": null,
+        "monitoring_samples_count": 0,
+        "ctrl_ov_cp_detected_samples": [],
+        "pdr_cp_detected_samples": [],
+        "fdff_detected_samples": [],
+        "fni_detected_samples": [],
+        "max_ctrl_dt": null,
+        "ca": null,
+        "suspect_events": [],
+        "blocklist_events": []
+      }
+    },
+    "benign_ids_on": {
+      "motes": {
+        "attack_start_s": null,
+        "attack_false_flow_sends": 0,
+        "data_traffic": {
+          "tx": 77,
+          "rx": 67,
+          "pdr_pct": 87.01,
+          "delay_mean_ms": 10706.28,
+          "delay_median_ms": 2901.49,
+          "delay_p95_ms": 13652.56,
+          "delay_max_ms": 128209.26
+        },
+        "data_traffic_split": {},
+        "control_overhead": {
+          "originated_sdn": 232,
+          "originated_ids_mngt": 544,
+          "originated_total": 776,
+          "radio_tx_sdn": 232,
+          "radio_tx_ids_mngt": 544,
+          "radio_tx_total": 776
+        },
+        "energy_mj": {
+          "per_node": {
+            "8": 1819,
+            "2": 4683,
+            "6": 2272,
+            "4": 3908,
+            "7": 2247,
+            "9": 1914,
+            "5": 2035,
+            "3": 1450
+          },
+          "sensor_nodes_total_mj": 20328,
+          "sensor_nodes_mean_mj": 2541.0
+        },
+        "distributed_ids": {
+          "suspects_by_node": {
+            "5": 5
+          },
+          "cp_detected_nodes": {
+            "7": [
+              1775.178072,
+              52
+            ]
+          },
+          "alarm_nodes": []
+        }
+      },
+      "controller": {
+        "controller_reported_total_overhead": 200,
+        "monitoring_samples_count": 39,
+        "ctrl_ov_cp_detected_samples": [],
+        "pdr_cp_detected_samples": [],
+        "fdff_detected_samples": [],
+        "fni_detected_samples": [],
+        "max_ctrl_dt": 1.82,
+        "ca": 2.79,
+        "suspect_events": [],
+        "blocklist_events": []
+      }
+    },
+    "attack_ids_on": {
+      "motes": {
+        "attack_start_s": 1235.49,
+        "attack_false_flow_sends": 156,
+        "data_traffic": {
+          "tx": 77,
+          "rx": 66,
+          "pdr_pct": 85.71,
+          "delay_mean_ms": 5250.06,
+          "delay_median_ms": 2692.63,
+          "delay_p95_ms": 7552.07,
+          "delay_max_ms": 128538.76
+        },
+        "data_traffic_split": {
+          "pre_attack": {
+            "tx": 38,
+            "rx": 30,
+            "pdr_pct": 78.95,
+            "delay_mean_ms": 7754.53,
+            "delay_median_ms": 2616.84,
+            "delay_p95_ms": 11152.23,
+            "delay_max_ms": 128538.76
+          },
+          "during_attack": {
+            "tx": 39,
+            "rx": 30,
+            "pdr_pct": 76.92,
+            "delay_mean_ms": 3234.83,
+            "delay_median_ms": 2866.84,
+            "delay_p95_ms": 6052.13,
+            "delay_max_ms": 7552.07
+          }
+        },
+        "control_overhead": {
+          "originated_sdn": 652,
+          "originated_ids_mngt": 484,
+          "originated_total": 1136,
+          "radio_tx_sdn": 652,
+          "radio_tx_ids_mngt": 484,
+          "radio_tx_total": 1136
+        },
+        "energy_mj": {
+          "per_node": {
+            "8": 1988,
+            "2": 5314,
+            "6": 2703,
+            "4": 5142,
+            "7": 3138,
+            "9": 1640,
+            "5": 2364,
+            "3": 1941
+          },
+          "sensor_nodes_total_mj": 24230,
+          "sensor_nodes_mean_mj": 3028.75
+        },
+        "distributed_ids": {
+          "suspects_by_node": {
+            "2": 39,
+            "4": 33,
+            "6": 39,
+            "8": 39
+          },
+          "cp_detected_nodes": {
+            "2": [
+              1595.288067,
+              43
+            ]
+          },
+          "alarm_nodes": [
+            [
+              1595.28151,
+              2
+            ]
+          ]
+        }
+      },
+      "controller": {
+        "controller_reported_total_overhead": 527,
+        "monitoring_samples_count": 39,
+        "ctrl_ov_cp_detected_samples": [
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          93,
+          94,
+          95,
+          96,
+          97,
+          98,
+          99
+        ],
+        "pdr_cp_detected_samples": [],
+        "fdff_detected_samples": [
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          93,
+          94,
+          95,
+          96,
+          97,
+          98,
+          99
+        ],
+        "fni_detected_samples": [],
+        "max_ctrl_dt": 10.8,
+        "ca": 2.79,
+        "suspect_events": [],
+        "blocklist_events": []
+      }
+    }
+  },
+  "detection_summary": {
+    "centralized_benign_samples": 39,
+    "centralized_benign_fp_samples": 0,
+    "centralized_fpr_pct": 0.0,
+    "centralized_attack_post_samples": 38,
+    "centralized_attack_tp_samples": 36,
+    "centralized_window_dr_pct": 94.74,
+    "centralized_first_detection_sample": 64,
+    "centralized_detection_delay_s": 44.51,
+    "distributed_benign_fp_nodes": 1,
+    "distributed_benign_fpr_pct": 14.29,
+    "distributed_attack_suspect_neighbors": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "distributed_attack_cp_neighbors": [
+      2
+    ],
+    "distributed_attack_non_neighbor_fp": []
+  }
+}

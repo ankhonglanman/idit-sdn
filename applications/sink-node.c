@@ -64,7 +64,9 @@ PROCESS_THREAD(sdn_sink_process, ev, data)
   PROCESS_BEGIN();
 
   printf("#A color=GREEN\n");
+#ifdef CP_TIME_UPD
   printf("Data packets metric update: %u\n", CP_TIME_UPD);
+#endif
 
   sdn_init(receiver);
 
@@ -74,6 +76,7 @@ PROCESS_THREAD(sdn_sink_process, ev, data)
 
   sdn_register_flowid(flowid);
 
+#if defined (CP_DETECT) && defined (CENTR_DETECT)
   static struct etimer send_total_data;
   static struct etimer wait_send;
   uint16_t mngt_metrics = 0;
@@ -93,6 +96,11 @@ PROCESS_THREAD(sdn_sink_process, ev, data)
       etimer_restart(&send_total_data); 
     }
   }
+#else
+  while(1) {
+    PROCESS_WAIT_EVENT();
+  }
+#endif
 
   PROCESS_END();
 }

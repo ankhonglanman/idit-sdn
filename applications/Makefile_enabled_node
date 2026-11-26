@@ -1,4 +1,4 @@
-CONTIKI?=/home/chito/contiki-3.0
+CONTIKI?=/root/contiki-3.0
 
 CONTIKIDIRS += ../contiki-sdn/
 CONTIKIDIRS += ../tests/

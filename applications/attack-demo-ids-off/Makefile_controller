@@ -1,0 +1,34 @@
+CONTIKI?=/root/contiki-3.0
+
+CONTIKIDIRS += ../../contiki-sdn/
+CONTIKIDIRS += ../../contiki-sdn/collect-sdn/
+CONTIKIDIRS += ../../sdn-common/
+CONTIKIDIRS += ../../contiki-sdn/sdn-cd/
+CONTIKIDIRS += ../../contiki-sdn/sdn-nd/
+CONTIKIDIRS += ../
+
+CONTIKI_SOURCEFILES += sdn-network.c sdn-debug.c sdn-addr.c  dummy-controller-discovery.c sdn-neighbor-table.c sdn-send-packet.c sdn-packetbuf.c sdn-serial.c sdn-send.c sdn-queue.c sdn-receive.c naive-directed-cd.c null-cd.c sdn-serial.c naive-nd.c dummy-neighbor-discovery.c dummy-controller-discovery.c energy-manager.c manage-info.c symmcheck-cd.c improved-naive-nd.c
+
+ifeq ($(TARGET),srf06-cc26xx)
+  CONTIKI_SOURCEFILES += protocol-commutator-3.x.c
+else
+  CONTIKI_SOURCEFILES += protocol-commutator.c
+endif
+
+CONTIKI_SOURCEFILES += collect-nd.c collectsdn.c collect-cd.c
+
+DEFINES+=PROJECT_CONF_H=\"project-conf.h\"
+DEFINES+=NETSTACK_CONF_RDC_CHANNEL_CHECK_RATE=16
+DEFINES+=ENERGY_MANAGER
+
+CFLAGS += -DSDN_CONTROLLER_NODE
+CFLAGS += -DSDN_METRIC
+CFLAGS += -DMTENSEC
+
+CONTIKI_WITH_IPV6 = 0
+CONTIKI_WITH_IPV4 = 0
+CONTIKI_WITH_RIME = 1
+
+all: controller-node
+
+include $(CONTIKI)/Makefile.include

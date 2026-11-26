@@ -1,0 +1,77 @@
+# Sensitive / credentials / secrets
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.jks
+*.keystore
+*.token
+*secret*
+*credentials*
+id_rsa*
+id_ed25519*
+.netrc
+.npmrc
+
+# IDE, editor & OS files
+.vscode/
+.idea/
+*.pro.user*
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+*.bak
+
+# Qt & C/C++ build artifacts
+controller-server/build-*/
+tests/controller-server/build-*/
+.qmake.stash
+moc_*.cpp
+moc_*.h
+ui_*.h
+*.o
+*.a
+*.map
+
+# Contiki / MSP430 build artifacts & generated symlinks in demo dirs
+obj_*/
+*.co
+*.ce
+*.ihex
+*.srec
+*.lst
+symbols.c
+symbols.h
+applications/attack-demo/*.z1
+applications/attack-demo/*.sky
+applications/attack-demo/*.c
+applications/attack-demo/project-conf.h
+applications/attack-demo-ids-off/*.z1
+applications/attack-demo-ids-off/*.sky
+applications/attack-demo-ids-off/*.c
+applications/attack-demo-ids-off/project-conf.h
+
+# Python caches & virtualenvs
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Raw simulation logs (keep summary reports)
+simulation/results/attack_demo_*.txt
+simulation/results/eval_*_cooja.txt
+simulation/results/eval_*_motes.txt
+simulation/results/eval_*_controller.txt
+simulation/*.log
+simulation/COOJA.log
+simulation/COOJA.testlog
+!simulation/results/evaluation_report.md
+!simulation/results/evaluation_report.json
+!simulation/results/eval_firmware_sizes.txt

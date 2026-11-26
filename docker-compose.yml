@@ -1,0 +1,19 @@
+services:
+  idit-sdn:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: idit-sdn:latest
+    container_name: idit-sdn
+    stdin_open: true
+    tty: true
+    working_dir: /root/idit-sdn
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - QT_X11_NO_MITSHM=1
+      - CONTIKI=/root/contiki-3.0
+      - JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+    # Cooja and controller-pc communicate over 127.0.0.1:60001 inside the container
+    volumes:
+      - ./:/root/idit-sdn
+      - /tmp/.X11-unix:/tmp/.X11-unix

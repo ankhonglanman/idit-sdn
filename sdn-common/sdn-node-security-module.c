@@ -36,7 +36,13 @@
 #include "sdn-send-packet.h"
 
 // #define m_win 201 // number of samples for the training process. It starts in 201 to discard the first sample
-#define m_win 201
+#ifndef DIST_M_WIN
+#define DIST_M_WIN 201
+#endif
+#define m_win DIST_M_WIN
+#ifndef DIST_INIT_DELAY
+#define DIST_INIT_DELAY 720
+#endif
 #define d_win 50
 #define sus_buff 10 // the buffer on the suspects list
 
@@ -204,7 +210,7 @@ void security_node_add_suspect(sdnaddr_t suspect){
   }
   suspects_list[add_counter] = suspect;
   printf("Adding suspect: ");
-  sdnaddr_print(&suspect);
+  sdnaddr_print_nodebug(&suspect);
   printf("\n");
   add_counter++;
 }
@@ -270,7 +276,7 @@ PROCESS_THREAD(security_node_process, ev, data){
   static uint16_t ts_counter = 0;
   // sets the timer to start the period previous initiate the metric monitoring
   // etimer_set(&ts_timer, 3600 * CLOCK_SECOND);
-  etimer_set(&ts_timer, 720 * CLOCK_SECOND);
+  etimer_set(&ts_timer, DIST_INIT_DELAY * CLOCK_SECOND);
   // when the ts_timer expires the time series construction starts
   // we defined the monitoring window (traning) with m_win, when the counter surpass this value,
   // the detection window starts

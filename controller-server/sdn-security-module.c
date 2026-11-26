@@ -248,8 +248,12 @@ int security_print_blocklist(){
 /////////////////////////
 
 // #define M_WIN 205
+#ifndef S_SKIP
 #define S_SKIP 10
+#endif
+#ifndef M_WIN
 #define M_WIN 210
+#endif
 float GAMMA = 0.45;
 float S_VAL = 0.95;
 
@@ -361,7 +365,7 @@ int security_ts_construction(int metric_id, float metric_sample){
 }
 
 void security_sum_q1(uint16_t k_counter, int metric_id){
-  uint16_t k, sum_counter;
+  uint16_t k, sum_counter = 0;
   if(metric_id == CTRL_PCKTS_OVHD){
     for(k = S_SKIP; k < k_counter; k++){
       sum_ctrl_overhead += ctrl_overhead[k];

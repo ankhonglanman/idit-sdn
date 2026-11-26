@@ -44,6 +44,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     ui->ipAddress->setText("127.0.0.1");
 
+    QByteArray portEnv = qgetenv("SDN_CONTROLLER_PORT");
+    if (!portEnv.isEmpty()) {
+        bool ok = false;
+        int port = portEnv.toInt(&ok);
+        if (ok && port > 0 && port <= 65000) {
+            ui->portNumber->setValue(port);
+        }
+    }
+
     connectionTimer.start();
     getIdTimer = new QTimer(this);
     connect(getIdTimer, SIGNAL(timeout()), this, SLOT(on_getNodeButton_clicked()));

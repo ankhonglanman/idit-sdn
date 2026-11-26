@@ -1,0 +1,6 @@
+include(controller-pc.pro)
+
+DEFINES -= MSIXTYSEC
+DEFINES += MTENSEC
+DEFINES += S_SKIP=38
+DEFINES += M_WIN=60

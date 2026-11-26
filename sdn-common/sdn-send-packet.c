@@ -462,9 +462,11 @@ uint8_t sdn_send_data_management(uint16_t metrics, uint8_t flow_destiny) {
     struct data_flow_entry *d;
     d = sdn_dataflow_get(SDN_CONTROLLER_FLOW);
     sdnaddr_t *suspect_addr = security_node_choose_suspect();
-    printf("Sending CP detection alarm\n");
-    memcpy(((uint8_t *)sdn_packet) + packet_len + metrics_position, suspect_addr, sizeof(sdnaddr_t));
-    metrics_position += sizeof(sdnaddr_t);
+    if (suspect_addr != NULL) {
+      printf("Sending CP detection alarm\n");
+      memcpy(((uint8_t *)sdn_packet) + packet_len + metrics_position, suspect_addr, sizeof(sdnaddr_t));
+      metrics_position += sizeof(sdnaddr_t);
+    }
   }
   #endif
   #endif

@@ -39,26 +39,36 @@ run_cooja() {
 #				each parallel simulation
 	# (
 		cd "${contiki_dir}${4}${cooja_dir}/dist"
-		java -mx12120m -jar cooja.jar -nogui="$1" > $2 2>&1 &
+		java -mx2048m -jar cooja.jar -nogui="$1" > "$2" 2>&1 &
 
 		# append the pid of the last process (i.e. $!) to the list
-		pidJava=(${pidJava[@]} $!)
+		local cooja_pid=$!
+		pidJava=(${pidJava[@]} $cooja_pid)
 		echo ${pidJava[@]}
 
 		# wait until the cooja log exists
-		while [ ! -f $2 ]; do
+		while [ ! -f "$2" ]; do
+				if ! kill -0 "$cooja_pid" 2>/dev/null; then
+						echo "ERROR: Cooja process ($cooja_pid) exited before creating log $2"
+						exit 1
+				fi
 				sleep 0.5s
 				echo "Waiting log"
 		done
 
 		# wait until the serial socket is available
-		while [ `grep -c "Listening on port" $2` -ne 1 ]; do
-						sleep 0.5s
-						echo "Waiting for serial socket to become available"
+		while [ `grep -c "Listening on port" "$2"` -ne 1 ]; do
+				if ! kill -0 "$cooja_pid" 2>/dev/null; then
+						echo "ERROR: Cooja process ($cooja_pid) exited before opening serial socket. Log ($2):"
+						cat "$2"
+						exit 1
+				fi
+				sleep 0.5s
+				echo "Waiting for serial socket to become available"
 		done
 
 		# runnig the controller
-		"$controller_build_dir"/controller-pc $nnodes --platform offscreen > $3 2>&1 &
+		QT_QPA_PLATFORM=offscreen "$controller_build_dir"/controller-pc "$nnodes" > "$3" 2>&1 &
 		# appends the pid of the last process (i.e. $!) to the list
 		pidController=(${pidController[@]} $!)
 		cd -
@@ -106,40 +116,17 @@ for nnodes in "${nodes_v[@]}"; do
 					# setting simulation timeout
 					sed -i.bak "s,TIMEOUT.*,TIMEOUT($SIM_TIME_MS);," ${cooja_file}
 
-					# Clean current binaries
+					# Clean current binaries and build all Z1 firmwares without wiping prior .z1 outputs
 					(
+						set -e
 						cd "$build_dir"
 
-						#if [ "$nd" == "CL" ]; then
-						#	./change_to_collect.sh
-						#elif [ "$nd" == "NV-NV" ]; then
-						#	./change_to_NV-NV.sh
-						#elif [ "$nd" == "IM-NV" ]; then
-						#	./change_to_IM-NV.sh
-						#elif [ "$nd" == "NV-SC" ]; then
-						#	./change_to_NV-SC.sh
-						#elif [ "$nd" == "IM-SC" ]; then
-						#	./change_to_IM-SC.sh
-						# elif [ "$nd" == "BL" ]; then
-						#else
-						#	echo "there is no such ND algorithm"
-						#	continue
-						#fi
-
 						make TARGET=z1 clean -f Makefile_enabled_node
-						make TARGET=z1 -f Makefile_enabled_node sink-node
+						make TARGET=z1 -f Makefile_enabled_node sink-node enabled-node management-sink attack-fdff
+						rm -rf obj_z1 contiki-z1.a contiki-z1.map symbols.c symbols.h
 
-						make TARGET=z1 clean -f Makefile_enabled_node
-						make TARGET=z1 -f Makefile_enabled_node enabled-node
-
-						make TARGET=z1 clean -f Makefile_controller_node
 						make TARGET=z1 -f Makefile_controller_node
-
-						make TARGET=z1 clean -f Makefile_enabled_node
-						make TARGET=z1 -f Makefile_enabled_node management-sink
-						
-						make TARGET=z1 clean -f Makefile_enabled_node
-						make TARGET=z1 -f Makefile_enabled_node attack-one
+						rm -rf obj_z1 contiki-z1.a contiki-z1.map symbols.c symbols.h
 
 						# make clean -f Makefile_enabled_node
 						# make -f Makefile_enabled_node attack-two
@@ -147,17 +134,19 @@ for nnodes in "${nodes_v[@]}"; do
 						# make clean -f Makefile_intrusion_node
 						# make -f Makefile_intrusion_node attack-three
 
-					)
+					) || exit 1
 
 					#controller recompilation
 					(
-						cd $controller_build_dir
+						set -e
+						mkdir -p "$controller_build_dir"
+						cd "$controller_build_dir"
 						# changing serial server expected port
 						sed -i.bak "s,<number>60.*,<number>${port}</number>," ../controller-pc/mainwindow.ui
 						$QMAKE ../controller-pc/controller-pc.pro
 						$MAKE clean
 						$MAKE
-					)
+					) || exit 1
 
 					run_cooja `readlink -f ${cooja_file}` "$cooja_log_file" "$controller_out_file" $COOJA_CURRENT_INSTANCE
 					((COOJA_CURRENT_INSTANCE++))
@@ -203,7 +192,9 @@ kill ${pidController[@]}
 
 # controller default port
 (
-	cd $controller_build_dir
+	set -e
+	mkdir -p "$controller_build_dir"
+	cd "$controller_build_dir"
 	# changing serial server expected port
 	sed -i.bak "s,<number>60.*,<number>60001</number>," ../controller-pc/mainwindow.ui
 	$QMAKE ../controller-pc/controller-pc.pro
