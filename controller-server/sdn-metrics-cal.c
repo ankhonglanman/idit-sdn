@@ -68,10 +68,14 @@ void sdn_process_sink_metrics(uint32_t metric_value){
   current_data_pckts_rx = 0;
 }
 
+#ifndef TOTAL_EXPECTED_DATA_PCKTS
+#define TOTAL_EXPECTED_DATA_PCKTS 222.0f
+#endif
+
 float sdn_cal_data_dr(){
   // float total_expected = 388;
   // float total_expected = 132;
-  float total_expected = 222; // 1 data packer per minute monitoring every 60 seconds
+  float total_expected = TOTAL_EXPECTED_DATA_PCKTS; // 1 data packer per minute monitoring every 60 seconds
   // float total_expected = 121; // 1 data packer per minute monitoring every 30 seconds
   SDN_DEBUG("Current data packets received %0.2f\n", (float)current_data_pckts_rx);
   // SDN_DEBUG("Current data packets transmitted %0.2f\n", (float)current_data_pckts_tx);

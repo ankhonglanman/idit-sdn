@@ -39,7 +39,7 @@ run_cooja() {
 #				each parallel simulation
 	# (
 		cd "${contiki_dir}${4}${cooja_dir}/dist"
-		java -mx2048m -jar cooja.jar -nogui="$1" > "$2" 2>&1 &
+		java -Djava.awt.headless=true -mx2048m -jar cooja.jar -nogui="$1" > "$2" 2>&1 &
 
 		# append the pid of the last process (i.e. $!) to the list
 		local cooja_pid=$!

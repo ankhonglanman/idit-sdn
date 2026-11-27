@@ -52,10 +52,32 @@
 #define SDN_SIMULATION_N_SINKS 1
 #endif
 
+#ifndef SENSING_AT_SECONDS
 #define SENSING_AT_SECONDS 60
+#endif
 #define IDS_TIMER 180
+#ifndef ATTACK_TRIGGER
 #define ATTACK_TRIGGER 600
+#endif
+#ifndef ATTACK_PERIOD
 #define ATTACK_PERIOD 10
+#endif
+
+#ifdef MONETWSEC
+#define CP_TIMER 120
+#endif
+#ifdef MSIXTYSEC
+#define CP_TIMER 60
+#endif
+#ifdef MTHIRSEC
+#define CP_TIMER 30
+#endif
+#ifdef MTENSEC
+#define CP_TIMER 10
+#endif
+#ifndef CP_TIMER
+#define CP_TIMER 60
+#endif
 
 /*---------------------------------------------------------------------------*/
 PROCESS(sdn_test_process, "Contiki SDN example process");
@@ -93,7 +115,7 @@ static void create_false_flow_request() {
   flowid_t random_flow;
   random_flow = 10 + (random_rand() % 1000);
   sdn_send_data_flow_request(random_flow);
-  SDN_DEBUG("Sending false flow request: %d\n", random_flow);
+  printf("Sending false flow request: %d\n", random_flow);
   ctimer_set(&attack_timer, ATTACK_PERIOD * CLOCK_SECOND, create_false_flow_request, NULL);
  }
 
@@ -113,7 +135,12 @@ PROCESS_THREAD(sdn_test_process, ev, data)
   printf("SDN_SIMULATION_N_SINKS %d\n", SDN_SIMULATION_N_SINKS);
 
   static struct etimer periodic_timer;
+  #ifdef IDS
   static struct etimer ids_timer;
+  #endif
+  #ifdef CP_DETECT
+  static struct etimer ts_timer;
+  #endif
 
 
 #ifdef SDN_HARDCODED_ROUTES
@@ -159,7 +186,12 @@ PROCESS_THREAD(sdn_test_process, ev, data)
     etimer_set(&periodic_timer, SENSING_AT_SECONDS * CLOCK_SECOND);
   }
 
+  #ifdef IDS
   etimer_set(&ids_timer, IDS_TIMER * CLOCK_SECOND);
+  #endif
+  #ifdef CP_DETECT
+  etimer_set(&ts_timer, CP_TIMER * CLOCK_SECOND);
+  #endif
   ctimer_set(&attack_timer, ATTACK_TRIGGER * CLOCK_SECOND, create_false_flow_request, NULL);
 
   static char data[10];
@@ -180,6 +212,7 @@ PROCESS_THREAD(sdn_test_process, ev, data)
     }
 
 
+    #ifdef IDS
     if (etimer_expired(&ids_timer)) {
       
       printf("Sending IDS data to controller\n");
@@ -188,6 +221,16 @@ PROCESS_THREAD(sdn_test_process, ev, data)
       sdn_send_data_management(mngt_metrics, 2);
       etimer_reset(&ids_timer);
     }
+    #endif
+
+    #if defined (CP_DETECT) && defined (CENTR_DETECT)
+    if (etimer_expired(&ts_timer)){
+      uint16_t mngt_metrics;
+      mngt_metrics = SDN_MNGT_METRIC_QTY_DATA + SDN_MNGT_CTRL_PCKT_TX;
+      sdn_send_data_management(mngt_metrics, 1);
+      etimer_reset(&ts_timer);
+    }
+    #endif
   }
 
   PROCESS_END();

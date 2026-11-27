@@ -1,14 +1,14 @@
 # IDS_ON_FIRMWARE
    text	   data	    bss	    dec	    hex	filename
-  43105	    258	   6726	  50089	   c3a9	attack-fdff.z1
+  43187	    258	   6736	  50181	   c405	attack-fdff.z1
   33311	    224	   6592	  40127	   9cbf	controller-node.z1
-  47889	    272	   6716	  54877	   d65d	enabled-node.z1
-  42547	    258	   6670	  49475	   c143	sink-node.z1
+  48163	    272	   6720	  55155	   d773	enabled-node.z1
+  42629	    258	   6672	  49559	   c197	sink-node.z1
 # IDS_OFF_FIRMWARE
    text	   data	    bss	    dec	    hex	filename
   32941	    224	   6336	  39501	   9a4d	controller-node.z1
   41509	    258	   6384	  48151	   bc17	enabled-node.z1
   41147	    258	   6344	  47749	   ba85	sink-node.z1
 # CONTROLLER_BINARIES
-159416 /root/idit-sdn/controller-server/build-controller-pc-attack-demo/controller-pc
-145512 /root/idit-sdn/controller-server/build-controller-pc-ids-off/controller-pc
+159624 /root/idit-sdn/controller-server/build-controller-pc-attack-demo/controller-pc
+145616 /root/idit-sdn/controller-server/build-controller-pc-ids-off/controller-pc

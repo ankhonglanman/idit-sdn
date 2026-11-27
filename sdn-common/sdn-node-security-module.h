@@ -59,6 +59,9 @@ sdnaddr_t *security_node_choose_suspect();
 // Function to send an alarm to the centralized security module
 void security_node_send_alarm();
 
+// Mark the pending CP alarm as acknowledged by the controller
+void security_node_alarm_acked(void);
+
 // Function to obtain a sample of the transmitting time in ticks
 unsigned long security_node_transmitting_time();
 

@@ -2,11 +2,11 @@
   "firmware_sizes": {
     "ids_on": {
       "attack-fdff.z1": {
-        "text": 43105,
+        "text": 43187,
         "data": 258,
-        "bss": 6726,
-        "rom": 43363,
-        "ram": 6984
+        "bss": 6736,
+        "rom": 43445,
+        "ram": 6994
       },
       "controller-node.z1": {
         "text": 33311,
@@ -16,18 +16,18 @@
         "ram": 6816
       },
       "enabled-node.z1": {
-        "text": 47889,
+        "text": 48163,
         "data": 272,
-        "bss": 6716,
-        "rom": 48161,
-        "ram": 6988
+        "bss": 6720,
+        "rom": 48435,
+        "ram": 6992
       },
       "sink-node.z1": {
-        "text": 42547,
+        "text": 42629,
         "data": 258,
-        "bss": 6670,
-        "rom": 42805,
-        "ram": 6928
+        "bss": 6672,
+        "rom": 42887,
+        "ram": 6930
       }
     },
     "ids_off": {
@@ -54,8 +54,8 @@
       }
     },
     "controller_pc": {
-      "build-controller-pc-attack-demo": 159416,
-      "build-controller-pc-ids-off": 145512
+      "build-controller-pc-attack-demo": 159624,
+      "build-controller-pc-ids-off": 145616
     }
   },
   "scenarios": {
@@ -67,33 +67,33 @@
           "tx": 77,
           "rx": 69,
           "pdr_pct": 89.61,
-          "delay_mean_ms": 9397.42,
-          "delay_median_ms": 2639.3,
-          "delay_p95_ms": 12153.5,
-          "delay_max_ms": 120538.36
+          "delay_mean_ms": 12942.29,
+          "delay_median_ms": 2143.52,
+          "delay_p95_ms": 119394.95,
+          "delay_max_ms": 124209.14
         },
         "data_traffic_split": {},
         "control_overhead": {
-          "originated_sdn": 206,
+          "originated_sdn": 241,
           "originated_ids_mngt": 0,
-          "originated_total": 206,
-          "radio_tx_sdn": 206,
+          "originated_total": 241,
+          "radio_tx_sdn": 241,
           "radio_tx_ids_mngt": 0,
-          "radio_tx_total": 206
+          "radio_tx_total": 241
         },
         "energy_mj": {
           "per_node": {
-            "8": 969,
-            "2": 1714,
-            "6": 1101,
-            "4": 1107,
-            "7": 1009,
-            "9": 913,
-            "5": 1058,
-            "3": 854
+            "8": 1077,
+            "2": 1724,
+            "6": 1314,
+            "4": 1141,
+            "7": 980,
+            "9": 901,
+            "5": 1179,
+            "3": 904
           },
-          "sensor_nodes_total_mj": 8725,
-          "sensor_nodes_mean_mj": 1090.62
+          "sensor_nodes_total_mj": 9220,
+          "sensor_nodes_mean_mj": 1152.5
         },
         "distributed_ids": {
           "suspects_by_node": {},
@@ -103,15 +103,20 @@
       },
       "controller": {
         "controller_reported_total_overhead": null,
+        "var_ctrl_overhead": null,
+        "var_data_pdr": null,
         "monitoring_samples_count": 0,
+        "total_series_samples": 0,
         "ctrl_ov_cp_detected_samples": [],
         "pdr_cp_detected_samples": [],
         "fdff_detected_samples": [],
         "fni_detected_samples": [],
         "max_ctrl_dt": null,
+        "max_pdr_dt": null,
         "ca": null,
         "suspect_events": [],
-        "blocklist_events": []
+        "blocklist_events": [],
+        "banned_nodes": []
       }
     },
     "benign_ids_on": {
@@ -120,143 +125,163 @@
         "attack_false_flow_sends": 0,
         "data_traffic": {
           "tx": 77,
-          "rx": 67,
-          "pdr_pct": 87.01,
-          "delay_mean_ms": 10706.28,
-          "delay_median_ms": 2901.49,
-          "delay_p95_ms": 13652.56,
-          "delay_max_ms": 128209.26
+          "rx": 63,
+          "pdr_pct": 81.82,
+          "delay_mean_ms": 3921.65,
+          "delay_median_ms": 3144.14,
+          "delay_p95_ms": 11645.49,
+          "delay_max_ms": 18651.38
         },
         "data_traffic_split": {},
         "control_overhead": {
-          "originated_sdn": 232,
+          "originated_sdn": 227,
           "originated_ids_mngt": 544,
-          "originated_total": 776,
-          "radio_tx_sdn": 232,
+          "originated_total": 771,
+          "radio_tx_sdn": 227,
           "radio_tx_ids_mngt": 544,
-          "radio_tx_total": 776
+          "radio_tx_total": 771
         },
         "energy_mj": {
           "per_node": {
-            "8": 1819,
-            "2": 4683,
-            "6": 2272,
-            "4": 3908,
-            "7": 2247,
-            "9": 1914,
-            "5": 2035,
-            "3": 1450
+            "8": 1904,
+            "2": 5149,
+            "6": 1943,
+            "4": 3269,
+            "7": 1764,
+            "9": 1905,
+            "5": 2338,
+            "3": 1647
           },
-          "sensor_nodes_total_mj": 20328,
-          "sensor_nodes_mean_mj": 2541.0
+          "sensor_nodes_total_mj": 19919,
+          "sensor_nodes_mean_mj": 2489.88
         },
         "distributed_ids": {
-          "suspects_by_node": {
-            "5": 5
-          },
-          "cp_detected_nodes": {
-            "7": [
-              1775.178072,
-              52
-            ]
-          },
+          "suspects_by_node": {},
+          "cp_detected_nodes": {},
           "alarm_nodes": []
         }
       },
       "controller": {
-        "controller_reported_total_overhead": 200,
+        "controller_reported_total_overhead": 158,
+        "var_ctrl_overhead": 12.54,
+        "var_data_pdr": 1.28,
         "monitoring_samples_count": 39,
+        "total_series_samples": 99,
         "ctrl_ov_cp_detected_samples": [],
         "pdr_cp_detected_samples": [],
         "fdff_detected_samples": [],
         "fni_detected_samples": [],
-        "max_ctrl_dt": 1.82,
+        "max_ctrl_dt": 1.29,
+        "max_pdr_dt": 0.56,
         "ca": 2.79,
         "suspect_events": [],
-        "blocklist_events": []
+        "blocklist_events": [],
+        "banned_nodes": []
       }
     },
     "attack_ids_on": {
       "motes": {
-        "attack_start_s": 1235.49,
+        "attack_start_s": 1235.48,
         "attack_false_flow_sends": 156,
         "data_traffic": {
-          "tx": 77,
-          "rx": 66,
-          "pdr_pct": 85.71,
-          "delay_mean_ms": 5250.06,
-          "delay_median_ms": 2692.63,
-          "delay_p95_ms": 7552.07,
-          "delay_max_ms": 128538.76
+          "tx": 79,
+          "rx": 64,
+          "pdr_pct": 81.01,
+          "delay_mean_ms": 3693.35,
+          "delay_median_ms": 2662.59,
+          "delay_p95_ms": 7608.9,
+          "delay_max_ms": 21538.36
         },
         "data_traffic_split": {
           "pre_attack": {
-            "tx": 38,
+            "tx": 37,
             "rx": 30,
-            "pdr_pct": 78.95,
-            "delay_mean_ms": 7754.53,
-            "delay_median_ms": 2616.84,
-            "delay_p95_ms": 11152.23,
-            "delay_max_ms": 128538.76
+            "pdr_pct": 81.08,
+            "delay_mean_ms": 4193.35,
+            "delay_median_ms": 2657.65,
+            "delay_p95_ms": 11960.09,
+            "delay_max_ms": 21538.36
           },
           "during_attack": {
-            "tx": 39,
-            "rx": 30,
-            "pdr_pct": 76.92,
-            "delay_mean_ms": 3234.83,
-            "delay_median_ms": 2866.84,
-            "delay_p95_ms": 6052.13,
-            "delay_max_ms": 7552.07
+            "tx": 42,
+            "rx": 29,
+            "pdr_pct": 69.05,
+            "delay_mean_ms": 3182.79,
+            "delay_median_ms": 3613.8,
+            "delay_p95_ms": 5011.02,
+            "delay_max_ms": 7383.31
           }
         },
         "control_overhead": {
-          "originated_sdn": 652,
-          "originated_ids_mngt": 484,
-          "originated_total": 1136,
-          "radio_tx_sdn": 652,
-          "radio_tx_ids_mngt": 484,
-          "radio_tx_total": 1136
+          "originated_sdn": 645,
+          "originated_ids_mngt": 486,
+          "originated_total": 1131,
+          "radio_tx_sdn": 645,
+          "radio_tx_ids_mngt": 486,
+          "radio_tx_total": 1131
         },
         "energy_mj": {
           "per_node": {
-            "8": 1988,
-            "2": 5314,
-            "6": 2703,
-            "4": 5142,
-            "7": 3138,
-            "9": 1640,
-            "5": 2364,
-            "3": 1941
+            "8": 2615,
+            "2": 4493,
+            "6": 3007,
+            "4": 4287,
+            "7": 2174,
+            "9": 1775,
+            "5": 3730,
+            "3": 1852
           },
-          "sensor_nodes_total_mj": 24230,
-          "sensor_nodes_mean_mj": 3028.75
+          "sensor_nodes_total_mj": 23933,
+          "sensor_nodes_mean_mj": 2991.62
         },
         "distributed_ids": {
           "suspects_by_node": {
-            "2": 39,
-            "4": 33,
+            "2": 38,
+            "4": 32,
             "6": 39,
-            "8": 39
+            "8": 38
           },
           "cp_detected_nodes": {
+            "6": [
+              1396.927497,
+              33
+            ],
             "2": [
-              1595.288067,
-              43
+              1615.241633,
+              44
+            ],
+            "7": [
+              1755.319081,
+              51
             ]
           },
           "alarm_nodes": [
             [
-              1595.28151,
+              1396.920942,
+              6
+            ],
+            [
+              1615.235076,
+              2
+            ],
+            [
+              1635.259083,
+              2
+            ],
+            [
+              1655.261556,
               2
             ]
           ]
         }
       },
       "controller": {
-        "controller_reported_total_overhead": 527,
+        "controller_reported_total_overhead": 538,
+        "var_ctrl_overhead": 15.18,
+        "var_data_pdr": 1.2,
         "monitoring_samples_count": 39,
+        "total_series_samples": 99,
         "ctrl_ov_cp_detected_samples": [
-          64,
           65,
           66,
           67,
@@ -295,7 +320,6 @@
         ],
         "pdr_cp_detected_samples": [],
         "fdff_detected_samples": [
-          64,
           65,
           66,
           67,
@@ -333,10 +357,20 @@
           99
         ],
         "fni_detected_samples": [],
-        "max_ctrl_dt": 10.8,
+        "max_ctrl_dt": 8.71,
+        "max_pdr_dt": 1.19,
         "ca": 2.79,
-        "suspect_events": [],
-        "blocklist_events": []
+        "suspect_events": [
+          "First suspect: [ 05 00 ]",
+          "New alarm: [ 05 00 ], Alarms: 2"
+        ],
+        "blocklist_events": [
+          "[ 05 00 ] included in Blocklist",
+          "Attacker indentified: [ 05 00 ]"
+        ],
+        "banned_nodes": [
+          "[ 05 00 ]"
+        ]
       }
     }
   },
@@ -345,12 +379,12 @@
     "centralized_benign_fp_samples": 0,
     "centralized_fpr_pct": 0.0,
     "centralized_attack_post_samples": 38,
-    "centralized_attack_tp_samples": 36,
-    "centralized_window_dr_pct": 94.74,
-    "centralized_first_detection_sample": 64,
-    "centralized_detection_delay_s": 44.51,
-    "distributed_benign_fp_nodes": 1,
-    "distributed_benign_fpr_pct": 14.29,
+    "centralized_attack_tp_samples": 35,
+    "centralized_window_dr_pct": 92.11,
+    "centralized_first_detection_sample": 65,
+    "centralized_detection_delay_s": 64.52,
+    "distributed_benign_fp_nodes": 0,
+    "distributed_benign_fpr_pct": 0.0,
     "distributed_attack_suspect_neighbors": [
       2,
       4,
@@ -358,8 +392,11 @@
       8
     ],
     "distributed_attack_cp_neighbors": [
-      2
+      2,
+      6
     ],
-    "distributed_attack_non_neighbor_fp": []
+    "distributed_attack_non_neighbor_fp": [
+      7
+    ]
   }
 }

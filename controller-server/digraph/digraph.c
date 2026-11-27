@@ -549,8 +549,8 @@ void digraph_del_edges_to(vertice_ptr vertice_to) {
     if(edge != NULL) {
       do {
         if(edge->vertice == vertice_to) {
-          edge = edge->next;
           digraph_del_edge(vertice, vertice_to);
+          break;
         } else if(vertice->edge_header != NULL) {
           edge = edge->next;
         }

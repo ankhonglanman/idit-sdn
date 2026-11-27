@@ -91,7 +91,7 @@ run_scenario() {
 
   echo ">>> Running scenario: $name"
   cd "$COOJA_DIST"
-  java -mx2048m -jar cooja.jar -nogui="$csc_file" > "$cooja_log" 2>&1 &
+  java -Djava.awt.headless=true -mx2048m -jar cooja.jar -nogui="$csc_file" > "$cooja_log" 2>&1 &
   COOJA_PID=$!
 
   while [ ! -f "$cooja_log" ]; do

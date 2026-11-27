@@ -64,6 +64,8 @@ int security_print_list_suspects();
 
 int security_print_blocklist();
 
+int security_is_node_banned(sdnaddr_t *node);
+
 ///////////////////////////////////////////////////////////////////////
 
 // void security_process_global_ts(int metric_id, float metric_sample);

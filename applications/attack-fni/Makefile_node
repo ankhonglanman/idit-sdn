@@ -1,0 +1,53 @@
+CONTIKI?=/root/contiki-3.0
+
+CONTIKIDIRS += ../../contiki-sdn/
+CONTIKIDIRS += ../../tests/
+CONTIKIDIRS += ../../contiki-sdn/collect-sdn/
+CONTIKIDIRS += ../../sdn-common/
+CONTIKIDIRS += ../../contiki-sdn/sdn-cd/
+CONTIKIDIRS += ../../contiki-sdn/sdn-nd/
+CONTIKIDIRS += ../
+
+CONTIKI_SOURCEFILES += sdn-core.c sdn-send.c sdn-network.c sdn-receive.c  \
+            sdn-packetbuf.c dummy-neighbor-discovery.c dummy-controller-discovery.c sdn-neighbor-table.c\
+            sdn-debug.c data-flow-table.c control-flow-table.c sdn-addr.c flow-table-tests.c sdn-queue.c \
+            sdn-process-packets.c sdn-unknown-route.c naive-nd.c sdn-send-packet.c src-route-tests.c null-cd.c energy-manager.c\
+            naive-directed-cd.c manage-info.c symmcheck-cd.c improved-naive-nd.c ids-data.c\
+            sdn-node-security-module.c
+
+ifeq ($(TARGET),srf06-cc26xx)
+  CONTIKI_SOURCEFILES += protocol-commutator-3.x.c
+else
+  CONTIKI_SOURCEFILES += protocol-commutator.c
+endif
+
+CONTIKI_SOURCEFILES += collect-nd.c collectsdn.c collect-cd.c
+
+DEFINES+=PROJECT_CONF_H=\"project-conf.h\"
+DEFINES+=NETSTACK_CONF_RDC_CHANNEL_CHECK_RATE=16
+DEFINES+=ENERGY_MANAGER
+
+CFLAGS += -DSDN_ENABLED_NODE
+CFLAGS += -DSDN_METRIC
+CFLAGS += -DMANAGEMENT
+CFLAGS += -DCP_DETECT
+CFLAGS += -DDIST_DETECT
+CFLAGS += -DTRANS_TS
+CFLAGS += -DCENTR_DETECT
+CFLAGS += -DCTRL_OV_DETECT
+CFLAGS += -DDATA_DR_DETECT
+CFLAGS += -DMTENSEC
+CFLAGS += -DSTENSEC
+CFLAGS += -DSENSING_AT_SECONDS=10
+CFLAGS += -DDIST_M_WIN=21
+CFLAGS += -DDIST_INIT_DELAY=60
+
+CONTIKI_WITH_IPV6 = 0
+CONTIKI_WITH_IPV4 = 0
+CONTIKI_WITH_RIME = 1
+
+TARGET_LIBFILES = -lm
+
+all: enabled-node sink-node
+
+include $(CONTIKI)/Makefile.include

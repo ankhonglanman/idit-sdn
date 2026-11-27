@@ -30,9 +30,17 @@
 #include <stdio.h>
 #include <string.h>
 
+#if defined(CONTIKI_TARGET_Z1)
+#include "dev/uart0.h"
+#elif defined(CONTIKI_TARGET_REMOTE) || defined(CONTIKI_TARGET_ZOUL) || defined(CONTIKI_TARGET_OPENMOTE) || defined(CONTIKI_TARGET_CC2538DK)
+#include "dev/uart.h"
+#elif defined(CONTIKI_TARGET_IOTLAB_M3)
+#include "dev/uart1.h"
+#else
 #include "dev/uart1.h"
 #ifdef CC26XX_UART_H_
 #include <strformat.h>
+#endif
 #endif
 
 #include "contiki.h"
@@ -93,15 +101,20 @@ void sdn_serial_init(sendchar_type sendchar_fun) {
   sendchar_function = sendchar_fun;
   initSerialPacketBuffer();
   /* Warning: This section is platform dependent */
-  /* If using Wismote, sky or Sensortag platforms  */
-  //#ifndef CC26XX_UART_H_
-  //uart1_init(BAUD2UBR(115200)); //set the baud rate as necessary
-  //#endif
-  //uart1_set_input(&byteReceived); //set the callback function
-
-  /* If using Z1 - platform */
+#if defined(CONTIKI_TARGET_Z1)
   uart0_init(BAUD2UBR(115200)); //set the baud rate as necessary
   uart0_set_input(&byteReceived); //set the callback function
+#elif defined(CONTIKI_TARGET_REMOTE) || defined(CONTIKI_TARGET_ZOUL) || defined(CONTIKI_TARGET_OPENMOTE) || defined(CONTIKI_TARGET_CC2538DK)
+  uart_set_input(0, &byteReceived);
+#elif defined(CONTIKI_TARGET_IOTLAB_M3)
+  uart1_set_input(&byteReceived);
+#else
+  /* If using Wismote, sky or Sensortag platforms  */
+#ifndef CC26XX_UART_H_
+  uart1_init(BAUD2UBR(115200)); //set the baud rate as necessary
+#endif
+  uart1_set_input(&byteReceived); //set the callback function
+#endif
 
   process_start(&serial_sembei_process, NULL);
 }

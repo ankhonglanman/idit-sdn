@@ -49,7 +49,9 @@
 #define SDN_SIMULATION_N_SINKS 1
 #endif
 
+#ifndef SENSING_AT_SECONDS
 #define SENSING_AT_SECONDS 60
+#endif
 #define IDS_TIMER 120
 // #define CP_TIMER 120
 #define Vs 3

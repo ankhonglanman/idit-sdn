@@ -184,10 +184,15 @@ static void sdn_execute_action_receive() {
     break;
 
     case SDN_PACKET_ACK_BY_FLOW_ADDRESS:
-#if defined(SDN_ENABLED_NODE) && SDN_TX_RELIABILITY && defined(SDN_ENABLED_NODE)
+#if defined(SDN_ENABLED_NODE) && SDN_TX_RELIABILITY
       SDN_DEBUG("SDN_PACKET_ACK_BY_FLOW_ADDRESS.\n");
       sld_rcv_ack(SDN_PACKET_GET_FIELD(packet_ptr, sdn_ack_by_flow_address_t, acked_packed_type),
                   SDN_PACKET_GET_FIELD(packet_ptr, sdn_ack_by_flow_address_t, acked_packed_seqno));
+#if defined(CP_DETECT) && defined(DIST_DETECT)
+      if (SDN_PACKET_GET_FIELD(packet_ptr, sdn_ack_by_flow_address_t, acked_packed_type) == SDN_PACKET_MNGT_NODE_DATA) {
+        security_node_alarm_acked();
+      }
+#endif
 #endif
     break;
 
@@ -379,6 +384,11 @@ static void treat_src_routed_ack() {
 #if SDN_TX_RELIABILITY && defined(SDN_ENABLED_NODE)
       sld_rcv_ack(SDN_PACKET_GET_FIELD(packet_ptr, sdn_src_rtd_ack_t, acked_packed_type),
                   SDN_PACKET_GET_FIELD(packet_ptr, sdn_src_rtd_ack_t, acked_packed_seqno));
+#if defined(CP_DETECT) && defined(DIST_DETECT)
+      if (SDN_PACKET_GET_FIELD(packet_ptr, sdn_src_rtd_ack_t, acked_packed_type) == SDN_PACKET_MNGT_NODE_DATA) {
+        security_node_alarm_acked();
+      }
+#endif
 #else
       SDN_DEBUG("SDN_PACKET_SRC_ROUTED_ACK not expected.\n");
 #endif // SDN_TX_RELIABILITY && defined(SDN_ENABLED_NODE)
@@ -608,9 +618,16 @@ void process_mngt_data(sdn_flow_id_mngt_node_data_t* sdn_mngt_node_report, void*
   if (node_metrics & SDN_SEC_CP_DETECT_ALARM) {
     #ifdef DIST_DETECT
     sdnaddr_t attacker_candidate;
-    sdnaddr_copy(&attacker_candidate, (sdnaddr_t*)ptr_temp_metrics + metric_position);
+    sdnaddr_copy(&attacker_candidate, (sdnaddr_t*)((uint8_t*)ptr_temp_metrics + metric_position));
     security_process_node_alarm(packet_source, &attacker_candidate);
     metric_position += sizeof(sdnaddr_t);
+#if SDN_TX_RELIABILITY
+    #ifdef SDN_SOURCE_ROUTED
+    send_src_rtd_ack(packet_source, SDN_HEADER(packet_ptr)->type, SDN_HEADER(packet_ptr)->seq_no);
+    #else
+    send_ack_by_flow_address(packet_source, SDN_HEADER(packet_ptr)->type, SDN_HEADER(packet_ptr)->seq_no);
+    #endif
+#endif
     #endif
   }
 

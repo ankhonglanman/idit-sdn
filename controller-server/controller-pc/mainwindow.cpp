@@ -42,7 +42,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->ipAddress->setText("127.0.0.1");
+    QByteArray hostEnv = qgetenv("SDN_CONTROLLER_HOST");
+    if (!hostEnv.isEmpty()) {
+        ui->ipAddress->setText(QString::fromUtf8(hostEnv));
+    } else {
+        ui->ipAddress->setText("127.0.0.1");
+    }
 
     QByteArray portEnv = qgetenv("SDN_CONTROLLER_PORT");
     if (!portEnv.isEmpty()) {
@@ -51,6 +56,12 @@ MainWindow::MainWindow(QWidget *parent) :
         if (ok && port > 0 && port <= 65000) {
             ui->portNumber->setValue(port);
         }
+    }
+
+    QByteArray serialEnv = qgetenv("SDN_CONTROLLER_SERIAL");
+    if (!serialEnv.isEmpty()) {
+        ui->radioButton_serial->setChecked(true);
+        ui->ipAddress->setText(QString::fromUtf8(serialEnv));
     }
 
     connectionTimer.start();

@@ -43,7 +43,16 @@
 #ifndef DIST_INIT_DELAY
 #define DIST_INIT_DELAY 720
 #endif
-#define d_win 50
+#ifndef DIST_D_WIN
+#define DIST_D_WIN 50
+#endif
+#define d_win DIST_D_WIN
+#ifndef DIST_CA
+#define DIST_CA 2.82f
+#endif
+#ifndef ALARM_MAX_RETRIES
+#define ALARM_MAX_RETRIES 5
+#endif
 #define sus_buff 10 // the buffer on the suspects list
 
 #ifdef SONETWSEC
@@ -77,7 +86,7 @@ unsigned long energy;
 
 // DT is the parameter that will be compared against the critical value (ca)
 double DT;
-float ca = 2.82;
+float ca = DIST_CA;
 float Var;
 float g = 0;
 
@@ -89,6 +98,19 @@ uint16_t monitoring[d_win];
 uint16_t CPA;
 unsigned long sum_tot_q1 = 0;
 unsigned long sum_tot_q2 = 0;
+
+#if defined(ENERGY) && (defined(TRANS_TS) || defined(RX_CTRL_PCKT))
+static unsigned long energy_sum_tot_q1 = 0;
+static unsigned long energy_sum_tot_q2 = 0;
+static float energy_mean = 0.0f;
+static float energy_m2 = 0.0f;
+static uint16_t energy_train_count = 0;
+static float energy_Var = 0.0f;
+#endif
+
+static uint8_t alarm_pending = 0;
+static uint8_t alarm_acked = 0;
+static uint8_t alarm_retries = 0;
 
 sdnaddr_t suspects_list[sus_buff];
 uint8_t add_counter = 0;
@@ -132,33 +154,42 @@ unsigned long security_node_processing_time(){
   return diff_cpu;
 }
 
-unsigned long security_node_consumption_mJ(){
-  ticks_tx = security_node_transmitting_time();
+static unsigned long security_node_consumption_mJ_from_tx(unsigned long tx_ticks){
+  ticks_tx = tx_ticks;
   ticks_lpm = security_node_lpm_time();
   ticks_listen = security_node_listening_time();
   ticks_cpu = security_node_processing_time();
 
   energy = 3.3 * (ticks_tx * 17.4 + ticks_lpm * 0.023 + ticks_listen * 18.8 + ticks_cpu * 10) / 32768;
   //printf("Energy (mJ): %lu\n", energy);
-  
+
   return energy;
+}
+
+unsigned long security_node_consumption_mJ(){
+  return security_node_consumption_mJ_from_tx(security_node_transmitting_time());
 }
 // create time series for training
 
 void security_node_ts_training(uint16_t metric, uint16_t train_counter){
-  training[train_counter] = metric;
+  if (train_counter < m_win) {
+    training[train_counter] = metric;
+  }
 }
 
 // include a sample into the monitoring ts
 void security_node_ts_monitoring(uint16_t metric, uint16_t monitor_counter){
-  monitoring[monitor_counter] = metric;
+  if (monitor_counter < d_win) {
+    monitoring[monitor_counter] = metric;
+  }
 }
 
 // summatory of training time series
 void security_node_sum_q1(uint16_t k_counter){
   uint16_t k;
+  sum_tot_q1 = 0;
   // start in k = 1 to discard the first sample because it represents the total time of 1 hour
-  for(k = 1; k <= k_counter; k++){
+  for(k = 1; k <= k_counter && k < m_win; k++){
     sum_tot_q1 += (unsigned long)training[k];
   }
   //printf("Summatory Q1: %lu\n", sum_tot_q1);
@@ -173,12 +204,16 @@ void security_node_sum_q2(unsigned long metric){
 // Calculate the variance of the time series
 
 void security_node_variance_ts(unsigned long tot_q1, int v_counter){
+  if (v_counter <= 1) {
+    Var = 0.0f;
+    return;
+  }
   float average = (float)tot_q1/(float)v_counter;
   //printf("Average = %lu\n", (uint32_t)average);
   float sum_var = 0.0;
   int v;
   // start in v = 1 to discard the first sample because it represents the total time of 1 hour
-  for(v = 1; v <= v_counter; v++){
+  for(v = 1; v <= v_counter && v < m_win; v++){
     sum_var += (float)(pow((training[v] - average), 2));
   }
   Var = sum_var/(v_counter-1);
@@ -188,8 +223,15 @@ void security_node_variance_ts(unsigned long tot_q1, int v_counter){
 // Determine if there is a change point
 
 uint16_t security_node_cp_detector(uint16_t i_s, uint16_t M){
+  if (M == 0) {
+    return 0;
+  }
   double numerator = fabs((double)(sum_tot_q2-((i_s/(double)M)*sum_tot_q1)));
   double denominator = sqrt((double)M*(double)Var)*(1+((double)i_s/(double)M))*(powf((double)i_s/(double)(i_s+M),(double)g));
+  if (denominator <= 0.0) {
+    DT = 0.0;
+    return 0;
+  }
   DT = numerator/denominator;
   //printf("Summatory Q1: %lu, Summatory Q2: %lu, M: %u, i_s: %u\n", sum_tot_q1, sum_tot_q2, M, i_s);
   // printf("%s\n", );
@@ -204,8 +246,36 @@ uint16_t security_node_cp_detector(uint16_t i_s, uint16_t M){
   }
 }
 
+#if defined(ENERGY) && (defined(TRANS_TS) || defined(RX_CTRL_PCKT))
+static void security_node_energy_training_sample(uint16_t e_sample, uint16_t train_counter){
+  if (train_counter == 0) {
+    return;
+  }
+  energy_sum_tot_q1 += (unsigned long)e_sample;
+  energy_train_count++;
+  float delta = (float)e_sample - energy_mean;
+  energy_mean += delta / (float)energy_train_count;
+  energy_m2 += delta * ((float)e_sample - energy_mean);
+}
+
+static uint16_t security_node_energy_cp_detector(uint16_t i_s, uint16_t M){
+  if (M == 0) {
+    return 0;
+  }
+  double numerator = fabs((double)(energy_sum_tot_q2-((i_s/(double)M)*energy_sum_tot_q1)));
+  double denominator = sqrt((double)M*(double)energy_Var)*(1+((double)i_s/(double)M))*(powf((double)i_s/(double)(i_s+M),(double)g));
+  if (denominator <= 0.0) {
+    return 0;
+  }
+  if ((numerator/denominator) >= ca) {
+    return (m_win + i_s);
+  }
+  return 0;
+}
+#endif
+
 void security_node_add_suspect(sdnaddr_t suspect){
-  if(add_counter == 9){
+  if(add_counter >= sus_buff){
   	add_counter = 0;
   }
   suspects_list[add_counter] = suspect;
@@ -247,16 +317,35 @@ void security_node_send_alarm(){
   //printf("Sending alarm\n");
 }
 
+void security_node_alarm_acked(void){
+  if (alarm_pending && !alarm_acked) {
+    alarm_acked = 1;
+    alarm_pending = 0;
+    printf("CP alarm acknowledged\n");
+  }
+}
+
 void security_new_period(){
   int samp_counter;
-  // Discard first 50 samples and moves the next 150 to the start to free space
-  for(samp_counter = 1; samp_counter < (m_win-d_win); samp_counter++){
-    training[samp_counter] =  training[samp_counter+d_win];
-  }
-  // Moves monitoring samples to the last 50 samples in the trainging time series
-  for(samp_counter = 0; samp_counter < d_win; samp_counter++){
-    training[samp_counter+m_win-d_win] = monitoring[samp_counter];
-    monitoring[samp_counter] = 0;
+  if (m_win > d_win) {
+    // Discard first d_win samples and move the rest to the start to free space
+    for(samp_counter = 1; samp_counter < (m_win-d_win); samp_counter++){
+      training[samp_counter] =  training[samp_counter+d_win];
+    }
+    // Moves monitoring samples to the last d_win samples in the training time series
+    for(samp_counter = 0; samp_counter < d_win; samp_counter++){
+      training[samp_counter+m_win-d_win] = monitoring[samp_counter];
+      monitoring[samp_counter] = 0;
+    }
+  } else {
+    int keep = m_win - 1;
+    int start_idx = d_win - keep;
+    for(samp_counter = 0; samp_counter < keep; samp_counter++){
+      training[1 + samp_counter] = monitoring[start_idx + samp_counter];
+    }
+    for(samp_counter = 0; samp_counter < d_win; samp_counter++){
+      monitoring[samp_counter] = 0;
+    }
   }
   //printf("Checking new period: ");
   for(samp_counter = 0; samp_counter < m_win; samp_counter++){
@@ -290,66 +379,105 @@ PROCESS_THREAD(security_node_process, ev, data){
 	// ts_counter < 2000 is hard code, just for these simulations. It's a method to stop the security process
   	  if(ts_counter < 2000){
   	    if(ts_counter <= (m_win-1)){
-  	      #ifdef TRANS_TS
-  	      security_node_ts_training((uint16_t)security_node_transmitting_time(), ts_counter);
+  	      #if defined(TRANS_TS)
+          unsigned long tx_ticks_sample = security_node_transmitting_time();
+  	      security_node_ts_training((uint16_t)tx_ticks_sample, ts_counter);
   	      printf("Sample: %u, Transmitting time: %u\n", (ts_counter), training[ts_counter]);
-  	      #endif
-
-  	      #ifdef RX_CTRL_PCKT
+          #ifdef ENERGY
+          uint16_t e_sample = (uint16_t)security_node_consumption_mJ_from_tx(tx_ticks_sample);
+          security_node_energy_training_sample(e_sample, ts_counter);
+          printf("Sample: %u, Consumption (mJ): %u\n", (ts_counter), e_sample);
+          #endif
+  	      #elif defined(RX_CTRL_PCKT)
   	      security_node_ts_training((uint16_t)manag_get_info(64), ts_counter);
   	      printf("Sample: %u, Control packets received: %u\n", (ts_counter), training[ts_counter]);
-  	      #endif
-
           #ifdef ENERGY
-          security_node_ts_monitoring((uint16_t)security_node_consumption_mJ(), ts_counter-m_win);
-  	      printf("Sample: %u, Consumption (mJ): %u\n", (ts_counter), monitoring[ts_counter-m_win]);
+          uint16_t e_sample = (uint16_t)security_node_consumption_mJ();
+          security_node_energy_training_sample(e_sample, ts_counter);
+          printf("Sample: %u, Consumption (mJ): %u\n", (ts_counter), e_sample);
+          #endif
+          #elif defined(ENERGY)
+          security_node_ts_training((uint16_t)security_node_consumption_mJ(), ts_counter);
+  	      printf("Sample: %u, Consumption (mJ): %u\n", (ts_counter), training[ts_counter]);
           #endif
   	    }
 
   	    if(ts_counter == (m_win-1)){
   	      security_node_sum_q1(ts_counter);
   	      security_node_variance_ts(sum_tot_q1, ts_counter);
+          #if defined(ENERGY) && (defined(TRANS_TS) || defined(RX_CTRL_PCKT))
+          energy_Var = (energy_train_count > 1) ? (energy_m2 / (float)(energy_train_count - 1)) : 0.0f;
+          #endif
   	    }
 
   	    if(ts_counter >= (m_win)){
-  	      #ifdef TRANS_TS
-  	      security_node_ts_monitoring((uint16_t)security_node_transmitting_time(), ts_counter-m_win);
+          #if defined(ENERGY) && (defined(TRANS_TS) || defined(RX_CTRL_PCKT))
+          uint16_t e_sample = 0;
+          #endif
+  	      #if defined(TRANS_TS)
+          unsigned long tx_ticks_sample = security_node_transmitting_time();
+  	      security_node_ts_monitoring((uint16_t)tx_ticks_sample, ts_counter-m_win);
   	      printf("Sample: %u, Transmitting time: %u\n", (ts_counter), monitoring[ts_counter-m_win]);
-  	      #endif
-
-  	      #ifdef RX_CTRL_PCKT
+          #ifdef ENERGY
+          e_sample = (uint16_t)security_node_consumption_mJ_from_tx(tx_ticks_sample);
+          printf("Sample: %u, Consumption (mJ): %u\n", (ts_counter), e_sample);
+          #endif
+  	      #elif defined(RX_CTRL_PCKT)
   	      security_node_ts_monitoring((uint16_t)manag_get_info(64), ts_counter-m_win);
   	      printf("Sample: %u, Control packets received: %u\n", (ts_counter), monitoring[ts_counter-m_win]);
-  	      #endif
-
           #ifdef ENERGY
+          e_sample = (uint16_t)security_node_consumption_mJ();
+          printf("Sample: %u, Consumption (mJ): %u\n", (ts_counter), e_sample);
+          #endif
+          #elif defined(ENERGY)
           security_node_ts_monitoring((uint16_t)security_node_consumption_mJ(), ts_counter-m_win);
   	      printf("Sample: %u, Consumption (mJ): %u\n", (ts_counter), monitoring[ts_counter-m_win]);
           #endif
 
   	      security_node_sum_q2(monitoring[ts_counter-m_win]);
   	      CPA = security_node_cp_detector(ts_counter-(m_win-1), m_win-1);
+          #if defined(ENERGY) && (defined(TRANS_TS) || defined(RX_CTRL_PCKT))
+          energy_sum_tot_q2 += (unsigned long)e_sample;
+          if (CPA == 0) {
+            CPA = security_node_energy_cp_detector(ts_counter-(m_win-1), m_win-1);
+          }
+          #endif
   	      if(CPA != 0){
+            alarm_pending = 1;
+            alarm_acked = 0;
+            alarm_retries = 1;
   	        security_node_send_alarm();
   	        printf("CP detected in %u\n", CPA);
   	        ts_counter = 2000;
   	      }
-          if((ts_counter >= m_win + d_win) && ts_counter != 2000){
+          if((ts_counter >= m_win + d_win - 1) && ts_counter != 2000){
             // ts_counter = 2000;
             security_new_period();
             ts_counter = m_win-1;
             security_node_sum_q1(ts_counter);
             security_node_variance_ts(sum_tot_q1, ts_counter);
+            #if defined(ENERGY) && (defined(TRANS_TS) || defined(RX_CTRL_PCKT))
+            energy_sum_tot_q2 = 0;
+            #endif
           }
   	    }
-	      ts_counter++;
+        if (ts_counter < 2000) {
+	        ts_counter++;
+        }
 	      // etimer_set(&ts_timer, 120 * CLOCK_SECOND);
         etimer_set(&ts_timer, SAMPLING_TIME * CLOCK_SECOND);
-  	    }else{
+  	  } else {
+        if (alarm_pending && !alarm_acked && alarm_retries < ALARM_MAX_RETRIES) {
+          alarm_retries++;
+          printf("Retrying CP detection alarm (%u/%u)\n", alarm_retries, ALARM_MAX_RETRIES);
+          security_node_send_alarm();
+          etimer_set(&ts_timer, SAMPLING_TIME * CLOCK_SECOND);
+        } else {
   	      printf("CP already detected\n");
   	      etimer_reset(&ts_timer);
   	      etimer_stop(&ts_timer);
-  	    }
+        }
+  	  }
 	  }
   }
   PROCESS_END();

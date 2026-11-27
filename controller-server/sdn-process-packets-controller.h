@@ -58,6 +58,8 @@ void process_control_flow_request(sdn_control_flow_request_t *sdn_control_flow_r
 
 void process_register_flowid(uint16_t flowid, unsigned char* target);
 
+void sdn_isolate_attacker(sdnaddr_t *attacker);
+
 #if SDN_TX_RELIABILITY
 int send_ack_by_flow_address(sdnaddr_t* packet_destination, uint8_t acked_packed_type, uint8_t acked_packed_seqno);
 

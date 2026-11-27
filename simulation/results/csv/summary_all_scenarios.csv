@@ -1,0 +1,9 @@
+scenario,kind,tx,rx,pdr_pct,delay_mean_ms,ctrl_orig_total,ctrl_radio_tx_total,energy_total_mj,controller_total_overhead,samples,var_ctrl,var_pdr,max_ctrl_dt,max_pdr_dt,fdff_first_sample,fdff_det_count,fni_first_sample,fni_det_count,attack_start_s,attack_events,banned_nodes
+eval_benign_ids_off,grid3x3,77,69,89.61,12942.29,241,241,9220,,0,,,,,,0,,0,,0,
+eval_benign_ids_on,grid3x3,77,63,81.82,3921.65,771,771,19919,158,99,12.54,1.28,1.29,0.56,,0,,0,,0,
+eval_attack_ids_on,grid3x3,79,64,81.01,3693.35,1131,1131,23933,538,99,15.18,1.2,8.71,1.19,65,35,,0,1235.48,156,[ 05 00 ]
+attack_demo,grid3x3,77,65,84.42,3859.11,1124,1124,24858,528,99,7.72,1.08,10.93,1.16,64,36,,0,1235.49,156,[ 05 00 ]
+attack_fni,grid3x3,501,287,57.29,2536.54,968,1008,28461,352,99,9.2,138.72,4.97,16.28,64,22,66,34,1217.48,40,
+attack_two,grid3x3,81,69,85.19,3304.0,1123,1123,23219,520,99,11.7,1.09,6.6,0.59,66,34,,0,1115.48,111,
+attack_energy,grid3x3,66,53,80.3,4377.1,970,970,20974,442,89,4.99,0.65,14.8,0.85,64,26,,0,1235.7,116,[ 05 00 ]
+n36_ITSDN_n36_top_a1_1_i1_z1,n36,0,0,0.0,,331,331,0,946,16,,,,,,0,,0,,0,

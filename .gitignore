@@ -56,6 +56,35 @@ applications/attack-demo-ids-off/*.z1
 applications/attack-demo-ids-off/*.sky
 applications/attack-demo-ids-off/*.c
 applications/attack-demo-ids-off/project-conf.h
+applications/attack-energy/*.z1
+applications/attack-energy/*.sky
+applications/attack-energy/*.c
+applications/attack-energy/project-conf.h
+applications/attack-fni/*.z1
+applications/attack-fni/*.sky
+applications/attack-fni/*.c
+applications/attack-fni/attack.h
+applications/attack-fni/project-conf.h
+applications/attack-two-demo/*.z1
+applications/attack-two-demo/*.sky
+applications/attack-two-demo/*.c
+applications/attack-two-demo/project-conf.h
+applications/controller-node.sky
+controller-server/digraph/digraph-test
+
+# FIT IoT-LAB build outputs, symlinks & runtime results
+hardware/fit-iotlab/*.bin
+hardware/fit-iotlab/*.elf
+hardware/fit-iotlab/*.hex
+hardware/fit-iotlab/*.remote
+hardware/fit-iotlab/*.z1
+hardware/fit-iotlab/*.sky
+hardware/fit-iotlab/*.iotlab-m3
+hardware/fit-iotlab/*.zoul
+hardware/fit-iotlab/*.c
+hardware/fit-iotlab/attack.h
+hardware/fit-iotlab/build/
+hardware/fit-iotlab/results/
 
 # Python caches & virtualenvs
 __pycache__/
@@ -64,8 +93,11 @@ __pycache__/
 .venv/
 venv/
 
-# Raw simulation logs (keep summary reports)
+# Raw simulation logs (keep summary reports, CSVs & charts)
 simulation/results/attack_demo_*.txt
+simulation/results/attack_energy_*.txt
+simulation/results/attack_fni_*.txt
+simulation/results/attack_two_*.txt
 simulation/results/eval_*_cooja.txt
 simulation/results/eval_*_motes.txt
 simulation/results/eval_*_controller.txt
@@ -75,3 +107,6 @@ simulation/COOJA.testlog
 !simulation/results/evaluation_report.md
 !simulation/results/evaluation_report.json
 !simulation/results/eval_firmware_sizes.txt
+!simulation/results/full_experiment_report.md
+!simulation/results/csv/*.csv
+!simulation/results/charts/*.png

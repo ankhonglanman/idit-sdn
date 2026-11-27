@@ -491,6 +491,8 @@ uint8_t sdn_send_data_management(uint16_t metrics, uint8_t flow_destiny) {
 
     sdn_serial_send(&serial_pkt);
   #endif
+  } else {
+    sdn_packetbuf_pool_put((sdn_packetbuf*)sdn_packet);
   }
 
   return ret;

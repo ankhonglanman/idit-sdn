@@ -175,7 +175,12 @@ route_ptr shortest_path_algorithm(unsigned char *vertice_id_from, unsigned char 
 
   int edge_weight;
 
-  vertice_ptr vertice_root = digraph_get_vertice(vertice_id_from);
+  vertice_ptr vertice_root = digraph_find_vertice(vertice_id_from);
+  vertice_ptr vertice_target = digraph_find_vertice(vertice_id_to);
+
+  if (vertice_root == NULL || vertice_target == NULL) {
+    return NULL;
+  }
 
   vertice_ptr vertice = vertice_root;
 
@@ -233,8 +238,6 @@ route_ptr shortest_path_algorithm(unsigned char *vertice_id_from, unsigned char 
     vertice = dijkstra_queue_pop();
 
   } while(vertice != NULL);
-
-  vertice_ptr vertice_target = digraph_get_vertice(vertice_id_to);
 
   if(vertice_target->route_root == NULL) {
 
@@ -317,7 +320,12 @@ route_ptr widest_shortest_path_algorithm(unsigned char *vertice_id_from, unsigne
 
   int edge_weight;
 
-  vertice_ptr vertice_root = digraph_get_vertice(vertice_id_from);
+  vertice_ptr vertice_root = digraph_find_vertice(vertice_id_from);
+  vertice_ptr vertice_target = digraph_find_vertice(vertice_id_to);
+
+  if (vertice_root == NULL || vertice_target == NULL) {
+    return NULL;
+  }
 
   vertice_ptr vertice = vertice_root;
 
@@ -382,8 +390,6 @@ route_ptr widest_shortest_path_algorithm(unsigned char *vertice_id_from, unsigne
     vertice = dijkstra_queue_pop();
 
   } while(vertice != NULL);
-
-  vertice_ptr vertice_target = digraph_get_vertice(vertice_id_to);
 
   if(vertice_target->route_root == NULL) {
 
@@ -479,15 +485,20 @@ route_ptr checks_widest_shortest_route(route_ptr current_route) {
   current_route->route_weight = -1;
 
   //Gets the first current route's edge to verifying
-  vertice_ptr vertice = digraph_get_vertice(route->vertice_id);
+  vertice_ptr vertice = digraph_find_vertice(route->vertice_id);
 
   edge_ptr edge;
+
+  if (vertice == NULL || route->next == NULL) {
+    dijkstra_free_route(current_route);
+    return NULL;
+  }
 
   //Runs until the last route edge
   while (vertice != NULL) {
     edge = vertice->edge_header;
 
-    while (memcmp(edge->vertice->vertice_id, route->next->vertice_id, DIGRAPH_VERTICE_ID_SIZE) != 0) {
+    while (edge != NULL && memcmp(edge->vertice->vertice_id, route->next->vertice_id, DIGRAPH_VERTICE_ID_SIZE) != 0) {
 
       edge = edge->next;
 
@@ -515,7 +526,11 @@ route_ptr checks_widest_shortest_route(route_ptr current_route) {
       if(route->next == NULL) {
         vertice = NULL;
       } else {
-        vertice = digraph_get_vertice(route->vertice_id);
+        vertice = digraph_find_vertice(route->vertice_id);
+        if (vertice == NULL) {
+          dijkstra_free_route(current_route);
+          current_route = NULL;
+        }
       }
     }
   }
@@ -530,15 +545,20 @@ route_ptr checks_shortest_route(route_ptr current_route) {
   current_route->route_weight = 0;
 
   //Gets the first current route's edge to verifying
-  vertice_ptr vertice = digraph_get_vertice(route->vertice_id);
+  vertice_ptr vertice = digraph_find_vertice(route->vertice_id);
 
   edge_ptr edge;
+
+  if (vertice == NULL || route->next == NULL) {
+    dijkstra_free_route(current_route);
+    return NULL;
+  }
 
   //Runs until the last route edge
   while (vertice != NULL) {
     edge = vertice->edge_header;
 
-    while (memcmp(edge->vertice->vertice_id, route->next->vertice_id, DIGRAPH_VERTICE_ID_SIZE) != 0) {
+    while (edge != NULL && memcmp(edge->vertice->vertice_id, route->next->vertice_id, DIGRAPH_VERTICE_ID_SIZE) != 0) {
 
       edge = edge->next;
 
@@ -569,7 +589,11 @@ route_ptr checks_shortest_route(route_ptr current_route) {
 
       } else {
 
-        vertice = digraph_get_vertice(route->vertice_id);
+        vertice = digraph_find_vertice(route->vertice_id);
+        if (vertice == NULL) {
+          dijkstra_free_route(current_route);
+          current_route = NULL;
+        }
       }
     }
   }

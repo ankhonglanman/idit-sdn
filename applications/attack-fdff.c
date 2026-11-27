@@ -41,6 +41,7 @@
 #include "lib/random.h"
 #include "collect-nd.h"
 #include "data-flow-table.h"
+#include "sdn-send-packet.h"
 
 #ifdef DEMO
 #include "leds.h"
@@ -52,8 +53,13 @@
 #define SDN_SIMULATION_N_SINKS 1
 #endif
 
+#ifndef SENSING_AT_SECONDS
 #define SENSING_AT_SECONDS 60
+#endif
 #define IDS_TIMER 120
+#ifndef MAX_ATTACK_NEIGHBORS
+#define MAX_ATTACK_NEIGHBORS 8
+#endif
 #ifndef ATTACK_TRIGGER
 #define ATTACK_TRIGGER 14000
 #endif
@@ -76,7 +82,7 @@ PROCESS(sdn_test_process, "Contiki SDN example process");
 AUTOSTART_PROCESSES(&sdn_test_process);
 
 
-uint16_t temp_flowid[4];
+uint16_t temp_flowid[MAX_ATTACK_NEIGHBORS];
 static struct ctimer attack_timer;
 
 
@@ -107,7 +113,7 @@ static void create_false_flows() {
   
   uint8_t n;
 
-  for(n = 0; n <= 3; n++) {
+  for(n = 0; n < MAX_ATTACK_NEIGHBORS; n++) {
     if ((temp_flowid[n] > 0)) {
       //printf("Removing flow: %u\n", temp_flowid[n]);
       sdn_dataflow_remove(temp_flowid[n]);  
@@ -135,7 +141,7 @@ static void create_false_flows() {
 
   n = 0;
 
-  for(neighbor = sdn_neighbor_table_head(); neighbor != NULL; ) {
+  for(neighbor = sdn_neighbor_table_head(); neighbor != NULL && n < MAX_ATTACK_NEIGHBORS; ) {
     flowid_t random_flow;
     neighbor_next = list_item_next(neighbor);
     random_flow = 10 + (random_rand() % 1000);

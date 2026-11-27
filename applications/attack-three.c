@@ -44,6 +44,11 @@
 #include "net/netstack.h"
 #include "sdn-process-packets.h"
 #include "sdn-common-send.h"
+#include "sdn-packetbuf.h"
+#include "sdn-queue.h"
+#include "sdn-send.h"
+#include "sdn-neighbor-table.h"
+#include "sdn-send-packet.h"
 
 #ifdef DEMO
 #include "leds.h"
@@ -55,10 +60,16 @@
 #define SDN_SIMULATION_N_SINKS 1
 #endif
 
+#ifndef SENSING_AT_SECONDS
 #define SENSING_AT_SECONDS 60
+#endif
 #define IDS_TIMER 120
+#ifndef ATTACK_TRIGGER
 #define ATTACK_TRIGGER 7000
+#endif
+#ifndef RANDOM_TRIGGER
 #define RANDOM_TRIGGER 1200
+#endif
 // #define ATTACK_TRIGGER 30600
 // #define RANDOM_TRIGGER 72
 #ifdef ATTACK_SIXTY
@@ -73,6 +84,25 @@
 #ifdef ATTACK_ONE
 #define ATTACK_PERIOD 1
 #endif
+#ifndef ATTACK_PERIOD
+#define ATTACK_PERIOD 60
+#endif
+
+#ifdef MONETWSEC
+#define CP_TIMER 120
+#endif
+#ifdef MSIXTYSEC
+#define CP_TIMER 60
+#endif
+#ifdef MTHIRSEC
+#define CP_TIMER 30
+#endif
+#ifdef MTENSEC
+#define CP_TIMER 10
+#endif
+#ifndef CP_TIMER
+#define CP_TIMER 60
+#endif
 
 uint8_t attack;
 
@@ -85,6 +115,7 @@ uint16_t temp_flowid[8];
 
 
 uint8_t flag[4];
+static uint8_t neighbor_buf[4][SDN_MAX_PACKET_SIZE];
 uint8_t* neighbor[4];
 
 uint16_t len_neighbor[4];
@@ -110,91 +141,123 @@ static uint8_t isSensing() {
   return sensing;
 }
 
+static uint8_t forged_seq_offset = 1;
+
 void create_false_neighbor_information(uint8_t * packet, uint16_t len);
 
 void create_false_neighbor_information(uint8_t * packet, uint16_t len) {
+    if (packet == NULL || len < sizeof(sdn_neighbor_report_t) || len > SDN_MAX_PACKET_SIZE) {
+      return;
+    }
+    uint8_t *forged = (uint8_t *)sdn_packetbuf_pool_get();
+    if (forged == NULL) {
+      SDN_DEBUG_ERROR("SDN packetbuf pool is empty.\n");
+      return;
+    }
+    memcpy(forged, packet, len);
+    SDN_HEADER(forged)->thl = SDN_DEFAULT_TTL;
+    SDN_HEADER(forged)->seq_no = (uint8_t)(SDN_HEADER(packet)->seq_no + forged_seq_offset++);
 
  /*We count the number of neighbors and do a random from 0 to # of neigbors*/
 /*The random result is the number of neighbors that will be remove (or modified) from the table*/  
-    printf("Printing packet\n");
-    print_packet(packet, len);
     #ifdef ETX_MODIF 
     uint8_t n_neighbors;
-    memcpy(&n_neighbors, packet + 8, sizeof(n_neighbors));
-    
-    //printf("Before ETX modification");
-    //print_packet(packet, len);
+    memcpy(&n_neighbors, forged + 8, sizeof(n_neighbors));
 
     uint8_t i;
     for (i = 11; i < len; i=i+4) {
       uint16_t temp_etx;
       uint16_t new_etx;
-      memcpy(&temp_etx, packet + i, sizeof(temp_etx));
-      printf("Current ETX= %u\n", temp_etx);
+      memcpy(&temp_etx, forged + i, sizeof(temp_etx));
       new_etx = 8 + (random_rand() % 100);
-      memcpy(packet + i, &new_etx, sizeof(new_etx));
-      printf("New ETX= %u\n", new_etx);
+      memcpy(forged + i, &new_etx, sizeof(new_etx));
     }
-
-    //printf("After ETX modification");
-    //print_packet(packet, len);
     #endif
     
     #ifdef ADDR_MODIF
-    printf("Before ADDR modification \n");
-    //print_packet(packet, len);
-
     uint8_t a;
     for (a = 9; a < len; a=a+4) {
-      uint16_t new_addr;
-      new_addr = 4 + (random_rand() % 20);
-      memcpy(packet + a, &new_addr, sizeof(new_addr));
-      //printf("New Address= %u\n", new_etx);
+      sdnaddr_t fake_addr;
+      memset(&fake_addr, 0, sizeof(fake_addr));
+      fake_addr.u8[0] = (uint8_t)(20 + (random_rand() % 40));
+      memcpy(forged + a, &fake_addr, sizeof(fake_addr));
     }
-
-    printf("After ADDR modification\n");
-    //print_packet(packet, len);
     #endif
-    ENQUEUE_AND_SEND(packet, len, 0);
-   //sdn_treat_packet(packet, len, 0);
+
+    printf("Injecting false neighbor report for source ");
+    sdnaddr_print_nodebug(&SDN_HEADER(forged)->source);
+    printf(" len=%u\n", len);
+
+    if (sdn_send_queue_enqueue(forged, len, 0) != SDN_SUCCESS) {
+      sdn_packetbuf_pool_put((struct sdn_packetbuf *)forged);
+      SDN_DEBUG_ERROR("Error on packet enqueue.\n");
+    } else {
+      SDN_METRIC_TX(forged);
+      sdn_send_down_once();
+    }
+}
+
+static void inject_synthesized_false_nr_for_addr(sdnaddr_t *target) {
+  if (target == NULL) {
+    return;
+  }
+  uint8_t *forged = (uint8_t *)sdn_packetbuf_pool_get();
+  if (forged == NULL) {
+    SDN_DEBUG_ERROR("SDN packetbuf pool is empty.\n");
+    return;
+  }
+  sdn_neighbor_report_t *nr = (sdn_neighbor_report_t *)forged;
+  nr->header.type = SDN_PACKET_NEIGHBOR_REPORT;
+  nr->header.reserved = 0xFF;
+  nr->header.thl = SDN_DEFAULT_TTL;
+  nr->header.seq_no = (uint8_t)(200 + forged_seq_offset++);
+  sdnaddr_copy(&nr->header.source, target);
+  nr->flowid = SDN_CONTROLLER_FLOW;
+  nr->num_of_neighbors = 2;
+  uint16_t pkt_len = sizeof(sdn_neighbor_report_t);
+  uint8_t k;
+  for (k = 0; k < 2; k++) {
+    sdn_neighbor_report_list_t nrl;
+    memset(&nrl, 0, sizeof(nrl));
+    nrl.neighbor.u8[0] = (uint8_t)(20 + (random_rand() % 40));
+    nrl.etx = (uint16_t)(8 + (random_rand() % 100));
+    memcpy(forged + pkt_len, &nrl, sizeof(nrl));
+    pkt_len += sizeof(nrl);
+  }
+  printf("Injecting synthesized false neighbor report for source ");
+  sdnaddr_print_nodebug(&nr->header.source);
+  printf(" len=%u\n", pkt_len);
+  if (sdn_send_queue_enqueue(forged, pkt_len, 0) != SDN_SUCCESS) {
+    sdn_packetbuf_pool_put((struct sdn_packetbuf *)forged);
+    SDN_DEBUG_ERROR("Error on synthesized packet enqueue.\n");
+  } else {
+    SDN_METRIC_TX(forged);
+    sdn_send_down_once();
+  }
+}
+
+static void inject_synthesized_false_nr(void) {
+  struct sdn_neighbor_entry *sne = sdn_neighbor_table_head();
+  if (sne == NULL) {
+    return;
+  }
+  inject_synthesized_false_nr_for_addr(&sne->neighbor_addr);
 }
 
 void copy_neighbor_packet(uint8_t * packet, uint16_t len) {
-
+  uint8_t slot;
+  if (packet == NULL || len == 0 || len > SDN_MAX_PACKET_SIZE) {
+    return;
+  }
   printf("Copying neighbor reports\n");
-  if (flag[0] == 0) {
-    printf("Printing 1\n");
-    print_packet(packet, len);
-    neighbor[0] = (uint8_t*)malloc(len);
-    memcpy(neighbor[0], packet, len);
-    len_neighbor[0] = len;
-    print_packet(neighbor[0], len);
-    flag[0] = 1;
-    return;
-  }
-
-  if (flag[1] == 0) {
-    neighbor[1] = (uint8_t*)malloc(len);
-    memcpy(neighbor[1], packet, len);
-    len_neighbor[1] = len;
-    flag[1] = 1;
-    return;
-  }
-
-  if (flag[2] == 0) {
-    neighbor[2] = (uint8_t*)malloc(len);
-    memcpy(neighbor[2], packet, len);
-    len_neighbor[2] = len;
-    flag[2] = 1;
-    return;
-  }
-
-  if (flag[3] == 0) {
-    neighbor[3] = (uint8_t*)malloc(len);
-    memcpy(neighbor[3], packet, len);
-    len_neighbor[3] = len;
-    flag[3] = 1;
-    return;
+  for (slot = 0; slot < 4; slot++) {
+    if (flag[slot] == 0) {
+      neighbor[slot] = neighbor_buf[slot];
+      memcpy(neighbor[slot], packet, len);
+      len_neighbor[slot] = len;
+      flag[slot] = 1;
+      return;
+    }
   }
 }
 
@@ -226,6 +289,9 @@ PROCESS_THREAD(sdn_test_process, ev, data)
   static struct etimer periodic_timer;
   static struct etimer ids_timer;
   static struct etimer attack_timer;
+  #ifdef CP_DETECT
+  static struct etimer ts_timer;
+  #endif
 
   if(isSensing() == 1) {
     printf("Sensing data node.\n");
@@ -244,6 +310,9 @@ PROCESS_THREAD(sdn_test_process, ev, data)
 
   etimer_set(&ids_timer, IDS_TIMER * CLOCK_SECOND);
   etimer_set(&attack_timer, (ATTACK_TRIGGER +  random_rand() % RANDOM_TRIGGER) * CLOCK_SECOND);
+  #ifdef CP_DETECT
+  etimer_set(&ts_timer, CP_TIMER * CLOCK_SECOND);
+  #endif
   //ctimer_set(&attack_timer, ATTACK_TRIGGER * CLOCK_SECOND, create_false_flows, NULL);
   //printf("Flag timer = %u\n", ATTACK_TRIGGER +  random_rand() % RANDOM_TRIGGER);
 
@@ -282,6 +351,65 @@ PROCESS_THREAD(sdn_test_process, ev, data)
 */
     if (etimer_expired(&attack_timer)) {
       attack = 1;
+#ifdef FNI_BROAD_POISON
+      static uint8_t poison_cursor = 0;
+      sdnaddr_t victims[8];
+      int8_t victim_slot[8];
+      uint8_t victim_count = 0;
+      uint8_t s, v;
+
+      for (s = 0; s < 4 && victim_count < 8; s++) {
+        if (flag[s] == 1 && len_neighbor[s] >= sizeof(sdn_neighbor_report_t)) {
+          sdnaddr_t *src = &SDN_HEADER(neighbor[s])->source;
+          if (src->u8[0] > 3) {
+            uint8_t exists = 0;
+            for (v = 0; v < victim_count; v++) {
+              if (sdnaddr_cmp(&victims[v], src) == SDN_EQUAL) {
+                exists = 1;
+                break;
+              }
+            }
+            if (!exists) {
+              sdnaddr_copy(&victims[victim_count], src);
+              victim_slot[victim_count] = (int8_t)s;
+              victim_count++;
+            }
+          }
+        }
+      }
+
+      struct sdn_neighbor_entry *sne;
+      for (sne = sdn_neighbor_table_head(); sne != NULL && victim_count < 8;
+           sne = sdn_neighbor_table_next(sne->neighbor_addr)) {
+        if (sne->neighbor_addr.u8[0] > 3) {
+          uint8_t exists = 0;
+          for (v = 0; v < victim_count; v++) {
+            if (sdnaddr_cmp(&victims[v], &sne->neighbor_addr) == SDN_EQUAL) {
+              exists = 1;
+              break;
+            }
+          }
+          if (!exists) {
+            sdnaddr_copy(&victims[victim_count], &sne->neighbor_addr);
+            victim_slot[victim_count] = -1;
+            victim_count++;
+          }
+        }
+      }
+
+      if (victim_count > 0) {
+        uint8_t idx = (uint8_t)(poison_cursor % victim_count);
+        poison_cursor++;
+        if (victim_slot[idx] >= 0) {
+          uint8_t slot = (uint8_t)victim_slot[idx];
+          create_false_neighbor_information(neighbor[slot], len_neighbor[slot]);
+        } else {
+          inject_synthesized_false_nr_for_addr(&victims[idx]);
+        }
+      } else {
+        inject_synthesized_false_nr();
+      }
+#else
       uint8_t n_random;
       n_random = random_rand() % 4;
       if (flag[n_random] == 1) {
@@ -289,9 +417,21 @@ PROCESS_THREAD(sdn_test_process, ev, data)
       }else if (flag[0] == 1) {
         n_random = 0;
         create_false_neighbor_information(neighbor[n_random], len_neighbor[n_random]);
+      } else {
+        inject_synthesized_false_nr();
       }
+#endif
       etimer_set(&attack_timer, ATTACK_PERIOD * CLOCK_SECOND);
     }
+
+    #if defined (CP_DETECT) && defined (CENTR_DETECT)
+    if (etimer_expired(&ts_timer)){
+      uint16_t mngt_metrics;
+      mngt_metrics = SDN_MNGT_METRIC_QTY_DATA + SDN_MNGT_CTRL_PCKT_TX;
+      sdn_send_data_management(mngt_metrics, 1);
+      etimer_reset(&ts_timer);
+    }
+    #endif
 /*
     if (etimer_expired(&ids_timer)) {
       

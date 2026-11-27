@@ -1,6 +1,6 @@
 CC=gcc
 
-CFLAGS=-I. -g
+CFLAGS=-I. -I../../sdn-common -include stdint.h -DWEIGHT_ETX=1.0 -DWEIGHT_ENERGY=0.0 -g
 # CFLAGS+= -I../ControllerMote
 
 CFLAGS += -DDIGRAPH_VERTICE_ID_SIZE=4
@@ -14,7 +14,7 @@ CFLAGS += -DDIGRAPH_VERTICE_ID_SIZE=4
 # SERIAL_H = ../ControllerMote/SerialMoteMsgFormat.h
 MIGFLAGS = -D_POSIX_C_SOURCE
 
-digraph-test: digraph.o dijkstra.o
+digraph-test: digraph.o dijkstra.o dummy-metric.o
 
 #SerialReportPacket.c SerialReportPacket.h: $(SERIAL_H)
 # mig -o SerialReportPacket.h -c-prefix=spacket_topology c $(SERIAL_H) sf_topology_report_msg $(MIGFLAGS)
@@ -25,4 +25,4 @@ digraph-test: digraph.o dijkstra.o
 
 .PHONY: clean
 clean:
-	rm *.o digraph-test
+	rm -f *.o digraph-test

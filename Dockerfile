@@ -64,7 +64,11 @@ RUN dpkg --add-architecture i386 && \
         fonts-dejavu-core \
         dbus-x11 \
         x11-apps \
-        xvfb && \
+        xvfb \
+        python3-matplotlib \
+        socat \
+        gcc-arm-none-eabi \
+        libnewlib-arm-none-eabi && \
     update-java-alternatives -s java-1.8.0-openjdk-amd64 || true && \
     rm -rf /var/lib/apt/lists/*
 

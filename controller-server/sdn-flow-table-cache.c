@@ -201,6 +201,9 @@ uint8_t sdn_flow_id_table_remove_source(unsigned char* source_address) {
 
         flow_id_table_previous->next = flow_id_table->next;
       }
+      if (flow_id_table == flow_id_table_tail) {
+        flow_id_table_tail = flow_id_table_previous;
+      }
 
       flow_id_table = flow_id_table->next;
 
@@ -378,6 +381,9 @@ uint8_t sdn_flow_address_table_remove_source(unsigned char* source_address) {
       } else {
 
         flow_address_table_previous->next = flow_address_table->next;
+      }
+      if (flow_address_table == flow_address_table_tail) {
+        flow_address_table_tail = flow_address_table_previous;
       }
 
       flow_address_table = flow_address_table->next;

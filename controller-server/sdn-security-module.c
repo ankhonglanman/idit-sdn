@@ -35,6 +35,7 @@
 #include "sdn-debug.h"
 #include "sdn-addr.h"
 #include "sdn-metrics-cal.h"
+#include "sdn-process-packets-controller.h"
 
 #define D_THRESHOLD 0.5
 #define CTRL_PCKTS_OVHD 100
@@ -46,8 +47,9 @@
 #ifdef DIST_DETECT
 struct struct_suspect{
   sdnaddr_t suspect_id;
-  // number of times this suspect was reported 
+  // number of unique neighbors that reported this suspect
   uint8_t alarms;
+  sdnaddr_t *reporters;
 };
 
 typedef struct struct_suspect suspect_t;
@@ -75,56 +77,106 @@ void security_copy_topo_graph(){
 
 }
 
+static int security_suspect_has_reporter(int sus_index, sdnaddr_t *source){
+  uint8_t i;
+  if (sus_index < 0 || source == NULL || sus_list[sus_index].reporters == NULL) {
+    return 0;
+  }
+  for (i = 0; i < sus_list[sus_index].alarms; i++) {
+    if (sdnaddr_cmp(&sus_list[sus_index].reporters[i], source) == SDN_EQUAL) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static void security_suspect_add_reporter(int sus_index, sdnaddr_t *source){
+  if (sus_index < 0 || source == NULL) {
+    return;
+  }
+  uint8_t next_count = sus_list[sus_index].alarms + 1;
+  sdnaddr_t *new_reporters = (sdnaddr_t *)realloc(sus_list[sus_index].reporters, next_count * sizeof(sdnaddr_t));
+  if (new_reporters != NULL) {
+    sus_list[sus_index].reporters = new_reporters;
+    sdnaddr_copy(&sus_list[sus_index].reporters[next_count - 1], source);
+    sus_list[sus_index].alarms = next_count;
+  }
+}
+
 //modify management packet to include the suspect address
 void security_process_node_alarm(sdnaddr_t *source, sdnaddr_t *attacker_candidate){
+  if (attacker_candidate == NULL) {
+    return;
+  }
   // First alarm received, first memory allocation
-  // Copy the attacker id into the struct and ++ the alarm counter	
+  // Copy the attacker id into the struct and ++ the alarm counter
   if(num_suspects == 0){
   	sus_list = (suspect_t *)malloc(sizeof(suspect_t));
   	if(sus_list != NULL){
-  	  sdnaddr_copy(&sus_list->suspect_id, attacker_candidate);
-  	  sus_list->alarms = 1;
+  	  sdnaddr_copy(&sus_list[0].suspect_id, attacker_candidate);
+  	  sus_list[0].alarms = 0;
+      sus_list[0].reporters = NULL;
+      security_suspect_add_reporter(0, source);
   	  // suspect_flag = 1;
   	  num_suspects++;
       SDN_DEBUG("First suspect: ");
       sdnaddr_print(attacker_candidate);
-      SDN_DEBUG("\n");      
+      SDN_DEBUG("\n");
   	}
-  }else{ // ++ new alarms and memory reallocation  
-    // check it the suspect was reported before, if so, alarms++
+  }else{ // ++ new alarms and memory reallocation
+    // check if the suspect was reported before, if so, alarms++ (deduplicated per reporter)
     // if not, include the new suspect
     int sus_index;
     sus_index = security_find_suspect(attacker_candidate);
     if(sus_index != -1){
-      sus_list[sus_index].alarms++;
+      if (security_suspect_has_reporter(sus_index, source)) {
+        SDN_DEBUG("Duplicate alarm ignored from ");
+        sdnaddr_print(source);
+        SDN_DEBUG(" for ");
+        sdnaddr_print(attacker_candidate);
+        SDN_DEBUG("\n");
+        return;
+      }
+      security_suspect_add_reporter(sus_index, source);
       SDN_DEBUG("New alarm: ");
       sdnaddr_print(attacker_candidate);
       SDN_DEBUG(", Alarms: %u", sus_list[sus_index].alarms)
-      SDN_DEBUG("\n");  
+      SDN_DEBUG("\n");
     }else{
-      num_suspects++;
-      sus_list = (suspect_t *)realloc(sus_list, num_suspects*sizeof(suspect_t));
-      if(sus_list != NULL){
-        sdnaddr_copy(&sus_list[num_suspects-1].suspect_id, attacker_candidate);
-        sus_list[num_suspects-1].alarms = 1;
+      suspect_t *new_sus = (suspect_t *)realloc(sus_list, (num_suspects + 1) * sizeof(suspect_t));
+      if(new_sus != NULL){
+        sus_list = new_sus;
+        sus_index = num_suspects;
+        num_suspects++;
+        sdnaddr_copy(&sus_list[sus_index].suspect_id, attacker_candidate);
+        sus_list[sus_index].alarms = 0;
+        sus_list[sus_index].reporters = NULL;
+        security_suspect_add_reporter(sus_index, source);
         SDN_DEBUG("New suspect: ");
         sdnaddr_print(attacker_candidate);
         SDN_DEBUG("\n");
       }
-    }   	
+    }
   }
   SDN_DEBUG("Suspects: %u\n", num_suspects);
   security_print_list_suspects();
-  // Check if the suspect is classified as attacker 
+  // Check if the suspect is classified as attacker
   // If security_attacker_ident(attacker_candidate) == 1, the node is classified as attacker
   if(security_attacker_ident(attacker_candidate) == 1){
+    int blk_idx = security_find_node_in_blocklist(attacker_candidate);
     // If the node is not in the blocklist, include it in it
-    if(security_find_node_in_blocklist(attacker_candidate) == -1){
+    if(blk_idx == -1){
       // include attacker to a blocklist
       security_node_to_blocklist(attacker_candidate);
       SDN_DEBUG("Attacker indentified: ");
       sdnaddr_print(attacker_candidate);
       SDN_DEBUG("\n");
+      blk_idx = security_find_node_in_blocklist(attacker_candidate);
+    }
+    if (blk_idx != -1 && att_list[blk_idx].state == 0) {
+      att_list[blk_idx].state = 1;
+      sdn_isolate_attacker(attacker_candidate);
+      security_print_blocklist();
     }
   }
 }
@@ -239,6 +291,20 @@ int security_print_blocklist(){
     }
   }
   return 1;  
+}
+
+int security_is_node_banned(sdnaddr_t *node){
+  if (node == NULL) {
+    return 0;
+  }
+  uint16_t att_index;
+  for(att_index = 0; att_index < num_attackers; att_index++){
+    if(att_list[att_index].state == 1 &&
+       sdnaddr_cmp(&att_list[att_index].attacker_id, node) == SDN_EQUAL){
+      return 1;
+    }
+  }
+  return 0;
 }
 #endif
 
@@ -408,7 +474,7 @@ void security_variance_ts(int v_counter, int metric_id){
   if(metric_id == CTRL_PCKTS_OVHD){
     tot_q1 = sum_ctrl_overhead;	
     training = ctrl_overhead;
-  }else if(DATA_PCKTS_DR){
+  }else if(metric_id == DATA_PCKTS_DR){
   	tot_q1 = sum_data_pckt_dr;
     training = data_pckt_dr;
   }
@@ -426,7 +492,7 @@ void security_variance_ts(int v_counter, int metric_id){
     Var_ctrl_overhead = Var;
     printf("V counter = %d and Var counter = %d\n", v_counter, var_counter);
     printf("Variance control packets overhead: %0.2f\n", Var_ctrl_overhead); 
-  }else if(DATA_PCKTS_DR){
+  }else if(metric_id == DATA_PCKTS_DR){
     Var_data_packt_dr = Var;
     printf("Variance data packets delivery rate: %0.2f\n", Var_data_packt_dr);
     printf("V counter = %d and Var counter = %d\n", v_counter, var_counter); 
@@ -438,9 +504,9 @@ void security_variance_ts(int v_counter, int metric_id){
 
 uint16_t security_cp_detector(int metric_id, uint16_t i_s, uint16_t M, float gamma, float sig_lvl){
   printf("Starting CP detection: ");
-  double sum_tot_q2;
-  double sum_tot_q1;
-  double Var;
+  double sum_tot_q2 = 0.0;
+  double sum_tot_q1 = 0.0;
+  double Var = 0.0;
   double DT;
   double ca = security_critical_val(gamma, sig_lvl);
   if(metric_id == CTRL_PCKTS_OVHD){
@@ -449,7 +515,7 @@ uint16_t security_cp_detector(int metric_id, uint16_t i_s, uint16_t M, float gam
     sum_tot_q2 = (double)sum_ctrl_overhead_2;
     Var = (double)Var_ctrl_overhead; 
     printf("sum_tot_q1= %.2lf sum_tot_q2=%.2lf Var=%.2lf M=%.2lf i_s=%u\n", sum_tot_q1, sum_tot_q2, Var, (double)M, i_s);
-  }else if(DATA_PCKTS_DR){
+  }else if(metric_id == DATA_PCKTS_DR){
     printf("Delivery rate\n");
     sum_tot_q1 = (double)sum_data_pckt_dr;
     sum_tot_q2 = (double)sum_data_pckt_dr_2;
@@ -458,7 +524,11 @@ uint16_t security_cp_detector(int metric_id, uint16_t i_s, uint16_t M, float gam
   }
   double numerator = fabs((sum_tot_q2-((i_s/(double)M)*sum_tot_q1)));
   double denominator = sqrt((double)M*Var)*(1+((double)i_s/(double)M))*(powf((double)i_s/(double)(i_s+M),(double)gamma)); 
-  DT = numerator/denominator;
+  if (denominator <= 0.0) {
+    DT = 0.0;
+  } else {
+    DT = numerator/denominator;
+  }
   // printf("Summatory Q2: %lu\n", sum_tot_q2);
   printf("Numerator: %.2lf\n", numerator);
   printf("Denominator: %.2lf\n", denominator);
@@ -569,6 +639,7 @@ void security_print_ts(int metric_id){
     printf("%0.2f\t", ts_to_print[print_for]);
   }
   printf(" ]\n");
+  free(ts_to_print);
 }
 
 #endif

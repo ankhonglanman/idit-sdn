@@ -42,6 +42,9 @@
 #include "sdn-process-packets-controller.h"
 #include "sdn-packetbuf.h"
 #include "mainwindow_wrapper.h"
+#if defined(CP_DETECT) && defined(DIST_DETECT)
+#include "sdn-security-module.h"
+#endif
 
 
 #if !(defined(SDN_NEIGHBORINFO_SRC_TO_NEIGHBORS) || defined(SDN_NEIGHBORINFO_NEIGHBORS_TO_SRC))
@@ -86,6 +89,12 @@ int send_src_rtd_cont_mngt(sdnaddr_t* packet_destination, uint16_t metrics);
 
 void process_energy_metric(sdnaddr_t *source, uint32_t battery) {
 
+#if defined(CP_DETECT) && defined(DIST_DETECT)
+  if (security_is_node_banned(source)) {
+    return;
+  }
+#endif
+
   int digraph_changed = 0;
 
   printf("Source ");
@@ -119,6 +128,15 @@ void process_energy_metric(sdnaddr_t *source, uint32_t battery) {
 }
 
 void process_neighbor_report(sdn_neighbor_report_t* sdn_neighbor_report, void* neighbors) {
+
+#if defined(CP_DETECT) && defined(DIST_DETECT)
+  if (security_is_node_banned(&sdn_neighbor_report->header.source)) {
+    SDN_DEBUG("Ignoring neighbor report from banned node ");
+    sdnaddr_print(&sdn_neighbor_report->header.source);
+    SDN_DEBUG("\n");
+    return;
+  }
+#endif
 
   vertice_ptr vertice_source = digraph_find_vertice(sdn_neighbor_report->header.source.u8);
 
@@ -162,6 +180,12 @@ void process_neighbor_report(sdn_neighbor_report_t* sdn_neighbor_report, void* n
   for(index_neighbor = 0; index_neighbor < sdn_neighbor_report->num_of_neighbors; index_neighbor++) {
 
     sdn_neighbor_report_list_t* neighbor_list = (sdn_neighbor_report_list_t*) (neighbors + (sizeof(sdn_neighbor_report_list_t) * index_neighbor));
+
+#if defined(CP_DETECT) && defined(DIST_DETECT)
+    if (security_is_node_banned(&neighbor_list->neighbor)) {
+      continue;
+    }
+#endif
 
     vertice_dest = digraph_find_vertice(neighbor_list->neighbor.u8);
 
@@ -280,6 +304,12 @@ void process_neighbor_report(sdn_neighbor_report_t* sdn_neighbor_report, void* n
 
 void process_data_flow_request_packet(sdn_data_flow_request_t *sdn_data_flow_request) {
 
+#if defined(CP_DETECT) && defined(DIST_DETECT)
+  if (security_is_node_banned(&sdn_data_flow_request->header.source)) {
+    return;
+  }
+#endif
+
   flow_id_table_ptr flow_id_field;
 
   route_ptr route = NULL;
@@ -324,6 +354,12 @@ void process_data_flow_request_packet(sdn_data_flow_request_t *sdn_data_flow_req
 }
 
 void process_control_flow_request(sdn_control_flow_request_t *sdn_control_flow_request) {
+
+#if defined(CP_DETECT) && defined(DIST_DETECT)
+  if (security_is_node_banned(&sdn_control_flow_request->header.source)) {
+    return;
+  }
+#endif
 
   flow_address_table_ptr routing_field;
 
@@ -790,6 +826,25 @@ void process_register_flowid(uint16_t flowid, unsigned char* target) {
 
   sdn_flow_id_list_table_add(flowid, target);
   checks_flow_id_table_changes();
+}
+
+void sdn_isolate_attacker(sdnaddr_t *attacker) {
+  if (attacker == NULL) {
+    return;
+  }
+  printf("Isolating attacker ");
+  sdnaddr_print(attacker);
+  printf(" from routing digraph\n");
+
+  vertice_ptr att_v = digraph_find_vertice(attacker->u8);
+  if (att_v != NULL) {
+    digraph_del_vertice(att_v);
+  }
+  sdn_flow_id_table_remove_source(attacker->u8);
+  sdn_flow_address_table_remove_source(attacker->u8);
+  sdn_flow_id_list_table_remove_target(attacker->u8);
+  digraph_print();
+  update_flow_table_cache();
 }
 
 /**MANAGEMENT*/

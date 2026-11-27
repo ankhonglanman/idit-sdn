@@ -60,7 +60,7 @@ cleanup() {
 trap cleanup EXIT
 
 cd "$COOJA_DIST"
-java -mx2048m -jar cooja.jar -nogui="$CSC_FILE" > "$COOJA_LOG" 2>&1 &
+java -Djava.awt.headless=true -mx2048m -jar cooja.jar -nogui="$CSC_FILE" > "$COOJA_LOG" 2>&1 &
 COOJA_PID=$!
 
 while [ ! -f "$COOJA_LOG" ]; do

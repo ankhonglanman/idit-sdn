@@ -1,0 +1,60 @@
+CONTIKI?=/root/contiki-3.0
+TARGET?=remote
+
+CONTIKIDIRS += ../../contiki-sdn/
+CONTIKIDIRS += ../../contiki-sdn/collect-sdn/
+CONTIKIDIRS += ../../sdn-common/
+CONTIKIDIRS += ../../contiki-sdn/sdn-cd/
+CONTIKIDIRS += ../../contiki-sdn/sdn-nd/
+CONTIKIDIRS += ../../applications/
+CONTIKIDIRS += .
+
+CONTIKI_SOURCEFILES += sdn-network.c sdn-debug.c sdn-addr.c dummy-controller-discovery.c sdn-neighbor-table.c \
+            sdn-send-packet.c sdn-packetbuf.c sdn-serial.c sdn-send.c sdn-queue.c sdn-receive.c \
+            naive-directed-cd.c null-cd.c naive-nd.c dummy-neighbor-discovery.c energy-manager.c \
+            manage-info.c symmcheck-cd.c improved-naive-nd.c
+
+ifeq ($(TARGET),srf06-cc26xx)
+  CONTIKI_SOURCEFILES += protocol-commutator-3.x.c
+else
+  CONTIKI_SOURCEFILES += protocol-commutator.c
+endif
+
+CONTIKI_SOURCEFILES += collect-nd.c collectsdn.c collect-cd.c
+
+RF_CHANNEL?=22
+PAN_ID?=0x1D17
+
+DEFINES+=PROJECT_CONF_H=\"project-conf-iotlab.h\"
+DEFINES+=NETSTACK_CONF_RDC_CHANNEL_CHECK_RATE=16
+DEFINES+=IOTLAB_RF_CHANNEL=$(RF_CHANNEL)
+DEFINES+=IOTLAB_PAN_ID=$(PAN_ID)
+DEFINES+=ENERGY_MANAGER
+
+ifdef TX_POWER
+  DEFINES+=IOTLAB_TX_POWER=$(TX_POWER)
+endif
+
+ifeq ($(USE_NULLRDC),1)
+  DEFINES+=IOTLAB_USE_NULLRDC=1
+endif
+
+CFLAGS += -DSDN_CONTROLLER_NODE
+CFLAGS += -DSDN_METRIC
+CFLAGS += -DMANAGEMENT
+CFLAGS += -DIDS
+CFLAGS += -DCP_DETECT
+CFLAGS += -DDIST_DETECT
+CFLAGS += -DTRANS_TS
+CFLAGS += -DCENTR_DETECT
+CFLAGS += -DCTRL_OV_DETECT
+CFLAGS += -DDATA_DR_DETECT
+CFLAGS += -DMTENSEC
+
+CONTIKI_WITH_IPV6 = 0
+CONTIKI_WITH_IPV4 = 0
+CONTIKI_WITH_RIME = 1
+
+all: controller-node
+
+include $(CONTIKI)/Makefile.include
